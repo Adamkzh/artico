@@ -1,78 +1,220 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 
 const { width } = Dimensions.get('window');
 
+interface Message {
+  id: string;
+  text: string;
+  isUser: boolean;
+  audioPlaying: boolean;
+}
+
 const ResultScreen = () => {
   const router = useRouter();
   const { imageUri } = useLocalSearchParams<{ imageUri: string }>();
-  const [displayedText, setDisplayedText] = useState('');
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const fullText = "这幅画描绘的是《圣经·新约》中著名的场景——以马忤斯的晚餐。故事发生在耶稣复活后的第三天。两位门徒在前往以马忤斯小镇的路上遇见了耶稣，但当时他们并未认出他。直到晚餐时，当耶稣拿起面包，掰开并分给他们时，门徒才突然意识到，这位同行者正是已经复活的耶稣。画面上，耶稣坐在桌子中央，正掰开面包，象征着圣餐与救赎。左侧和右侧的门徒表情激动，身体微微前倾，传达出那一刻认出耶稣的惊讶与感动。画面背后的两位仆人则显得更加平静，他们并未意识到眼前发生了奇迹，形成了有趣的对比。这幅作品采用了强烈的明暗对比法（Chiaroscuro），光源从画面一侧射入，照亮了耶稣及门徒的面容和手势，而背景则沉浸在深邃的暗色之中。这种手法不仅增加了戏剧性，也集中观众的注意力，引导我们感受人物内心的震撼与虔诚。从画风和处理细节来看，这幅画高度接近意大利巴洛克时期大师卡拉瓦乔的风格。卡拉瓦乔以真实、直接的表现著称，他强调普通人的形象，赋予宗教故事以前所未有的人性力量。在这幅画中，人物衣着质朴，餐桌上的食物和器皿简单而具体，仿佛故事就发生在我们身边。值得注意的是，卡拉瓦乔本人创作过两版《以马忤斯的晚餐》。一版绘于1601年，另一版绘于1606年。根据画面气氛和人物表情的克制程度来看，这幅作品更接近他晚年的风格：更深沉，更内敛，更注重心灵的震颤而非外在的戏剧张力。整幅画不仅是宗教信仰的再现，也是人性与奇迹交汇瞬间的深刻凝视。请大家慢慢欣赏画中细节，用心感受那一瞬间，信仰在平凡生活中绽放的光芒。";
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [currentMessage, setCurrentMessage] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [userInput, setUserInput] = useState('');
+  const scrollViewRef = useRef<ScrollView>(null);
+  const textInputRef = useRef<TextInput>(null);
+  
+  const initialMessage = "这幅画描绘的是《圣经·新约》中著名的场景——以马忤斯的晚餐。";
 
   useEffect(() => {
+    typeMessage(initialMessage);
+    
+    // Cleanup function to stop any playing audio when component unmounts
+    return () => {
+      Speech.stop();
+    };
+  }, []);
+
+  const typeMessage = (text: string) => {
+    setIsTyping(true);
     let currentIndex = 0;
+    const messageId = Date.now().toString();
+    
+    // Start playing audio immediately when typing begins
+    playAudio(text, messageId);
+    
     const typingInterval = setInterval(() => {
-      if (currentIndex <= fullText.length) {
-        setDisplayedText(fullText.slice(0, currentIndex));
+      if (currentIndex <= text.length) {
+        setCurrentMessage(text.slice(0, currentIndex));
         currentIndex++;
       } else {
         clearInterval(typingInterval);
+        setIsTyping(false);
+        setMessages(prev => [...prev, {
+          id: messageId,
+          text,
+          isUser: false,
+          audioPlaying: false
+        }]);
+        setCurrentMessage('');
       }
     }, 30);
 
     return () => clearInterval(typingInterval);
-  }, []);
+  };
 
-  const toggleSpeech = async () => {
-    if (isSpeaking) {
-      await Speech.stop();
-    } else {
-      await Speech.speak(fullText, {
+  const playAudio = async (text: string, messageId: string) => {
+    try {
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId ? { ...msg, audioPlaying: true } : msg
+      ));
+      
+      await Speech.speak(text, {
         language: 'zh',
-        onDone: () => setIsSpeaking(false),
+        onStart: () => {
+          setMessages(prev => prev.map(msg => 
+            msg.id === messageId ? { ...msg, audioPlaying: true } : msg
+          ));
+        },
+        onDone: () => {
+          setMessages(prev => prev.map(msg => 
+            msg.id === messageId ? { ...msg, audioPlaying: false } : msg
+          ));
+        },
+        onError: (error) => {
+          console.error('Speech error:', error);
+          setMessages(prev => prev.map(msg => 
+            msg.id === messageId ? { ...msg, audioPlaying: false } : msg
+          ));
+        }
       });
+    } catch (error) {
+      console.error('Error playing audio:', error);
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId ? { ...msg, audioPlaying: false } : msg
+      ));
     }
-    setIsSpeaking(!isSpeaking);
+  };
+
+  const toggleAudio = async (message: Message) => {
+    try {
+      if (message.audioPlaying) {
+        await Speech.stop();
+        setMessages(prev => prev.map(msg => 
+          msg.id === message.id ? { ...msg, audioPlaying: false } : msg
+        ));
+      } else {
+        await playAudio(message.text, message.id);
+      }
+    } catch (error) {
+      console.error('Error toggling audio:', error);
+    }
+  };
+
+  const handleSendMessage = () => {
+    if (userInput.trim()) {
+      // Add user message
+      const userMessage = userInput.trim();
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        text: userMessage,
+        isUser: true,
+        audioPlaying: false
+      }]);
+      
+      // Clear input and hide keyboard
+      setUserInput('');
+      textInputRef.current?.blur();
+      
+      // Simulate a response after a short delay
+      setTimeout(() => {
+        typeMessage("画面上，耶稣坐在桌子中央，正掰开面包，象征着圣餐与救赎。左侧和右侧的门徒表情激动，身体微微前倾，传达出那一刻认出耶稣的惊讶与感动。");
+      }, 1000);
+    }
   };
 
   return (
-    <View style={styles.container}>
-      <Image
-        source={{ uri: imageUri }}
-        style={styles.image}
-        resizeMode="cover"
-      />
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <TouchableOpacity
+        style={styles.homeButton}
+        onPress={() => {
+          Speech.stop();
+          router.push('/');
+        }}
+      >
+        <Ionicons name="home" size={24} color="#FFFFFF" />
+      </TouchableOpacity>
 
-      <ScrollView style={styles.contentContainer}>
-        <View style={styles.textContainer}>
-          <Text style={styles.text}>{displayedText}</Text>
-        </View>
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={() => textInputRef.current?.blur()}
+      >
+        <Image
+          source={{ uri: imageUri }}
+          style={styles.image}
+          resizeMode="cover"
+        />
+      </TouchableOpacity>
+
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.contentContainer}
+        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+        keyboardShouldPersistTaps="handled"
+      >
+        {messages.map((message) => (
+          <View 
+            key={message.id} 
+            style={[
+              styles.messageContainer,
+              message.isUser ? styles.userMessage : styles.assistantMessage
+            ]}
+          >
+            <Text style={styles.messageText}>{message.text}</Text>
+            {!message.isUser && (
+              <TouchableOpacity
+                style={styles.audioButton}
+                onPress={() => toggleAudio(message)}
+              >
+                <Ionicons
+                  name={message.audioPlaying ? 'pause' : 'play'}
+                  size={20}
+                  color="#FFFFFF"
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+        ))}
+        {isTyping && (
+          <View style={styles.messageContainer}>
+            <Text style={styles.messageText}>{currentMessage}</Text>
+          </View>
+        )}
       </ScrollView>
 
-      <View style={styles.controls}>
+      <View style={styles.inputContainer}>
+        <TextInput
+          ref={textInputRef}
+          style={styles.input}
+          value={userInput}
+          onChangeText={setUserInput}
+          placeholder="Ask me anything about this painting..."
+          placeholderTextColor="#666"
+          multiline
+          maxLength={200}
+        />
         <TouchableOpacity
-          style={styles.speechButton}
-          onPress={toggleSpeech}
+          style={[styles.sendButton, !userInput.trim() && styles.sendButtonDisabled]}
+          onPress={handleSendMessage}
+          disabled={!userInput.trim()}
         >
-          <Ionicons
-            name={isSpeaking ? 'pause' : 'play'}
-            size={24}
-            color="#FFFFFF"
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.homeButton}
-          onPress={() => router.push('/')}
-        >
-          <Ionicons name="home" size={24} color="#FFFFFF" />
+          <Ionicons name="send" size={24} color={userInput.trim() ? "#FFFFFF" : "#666"} />
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -83,47 +225,81 @@ const styles = StyleSheet.create({
   },
   image: {
     width: width,
-    height: width,
+    height: Dimensions.get('window').height * 0.328,
   },
   contentContainer: {
     flex: 1,
     padding: 20,
   },
-  textContainer: {
-    backgroundColor: '#1A1A1A',
+  messageContainer: {
+    maxWidth: '85%',
+    marginBottom: 10,
+    padding: 10,
     borderRadius: 15,
-    padding: 20,
-    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  text: {
+  userMessage: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#007AFF',
+  },
+  assistantMessage: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#1A1A1A',
+  },
+  messageText: {
     color: '#FFFFFF',
     fontSize: 16,
     lineHeight: 24,
+    flex: 1,
   },
-  controls: {
-    position: 'absolute',
-    bottom: 40,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 20,
-  },
-  speechButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+  audioButton: {
+    marginLeft: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    padding: 20,
+    backgroundColor: '#1A1A1A',
+    alignItems: 'center',
+  },
+  input: {
+    flex: 1,
+    backgroundColor: '#2A2A2A',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 15,
+    marginRight: 10,
+    color: '#FFFFFF',
+    maxHeight: 100,
+  },
+  sendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendButtonDisabled: {
+    backgroundColor: '#2A2A2A',
   },
   homeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
     width: 50,
     height: 50,
     borderRadius: 25,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 1,
   },
 });
 
