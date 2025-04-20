@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 const LoadingScreen = () => {
   const router = useRouter();
   const { imageUri } = useLocalSearchParams<{ imageUri: string }>();
-  const [blurAnim] = useState(new Animated.Value(10));
+  const [blurAnim] = useState(new Animated.Value(100));
   const [opacityAnim] = useState(new Animated.Value(0));
 
   useEffect(() => {

@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+deep-translator
+openai
+pydantic
+gtts
+python-multipart
+boto3

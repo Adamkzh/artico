@@ -39,8 +39,18 @@ const HomeScreen = () => {
     <View style={styles.container}>
       {/* Top Section */}
       <View style={styles.topSection}>
-        <Text style={styles.date}>{date}</Text>
-        <Text style={styles.greeting}>{greeting}</Text>
+        <View style={styles.topBar}>
+          <View>
+            <Text style={styles.date}>{date}</Text>
+            <Text style={styles.greeting}>{greeting}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.profileButton}
+            onPress={() => router.push('/profile')}
+          >
+            <Ionicons name="person" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Center Section */}
@@ -78,6 +88,11 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 60,
   },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   date: {
     color: '#FFFFFF',
     fontSize: 16,
@@ -88,6 +103,14 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginTop: 5,
+  },
+  profileButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#333333',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   centerSection: {
     flex: 1,

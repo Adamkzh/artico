@@ -1,21 +1,27 @@
 from openai import OpenAI
-import os
+import base64
 from session_store import init_session
-
+from gpt.promptGenerator import PromptGenerator
 
 client = OpenAI()
 
-def generate_initial_description(image_bytes):
-    import base64
+ 
+def generate_initial_description(image_bytes, language_description="English", role="adult"):
+    """
+    Generate the initial spoken description for an artwork based on the uploaded image.
+    
+    :param image_bytes: The image content in bytes.
+    :param language_description: Target language for explanation (default: English).
+    :param role: User type (child, adult, senior, expert).
+    :return: (session_id, messages, reply_text)
+    """
 
-    session_id = init_session()
-    
     base64_image = base64.b64encode(image_bytes).decode('utf-8')
-    
+    prompt_generator = PromptGenerator(language_description=language_description, role=role)
     messages = [
-        {"role": "system", "content": "你是一名博物馆讲解员"},
+        {"role": "system", "content": prompt_generator.generate_role()},
         {"role": "user", "content": [
-            {"type": "text", "text": "请为这幅展品做一个语音讲解"},
+            {"type": "text", "text": prompt_generator.generate_context()},
             {"type": "image_url", "image_url": {
                 "url": f"data:image/jpeg;base64,{base64_image}"
             }}
@@ -27,9 +33,10 @@ def generate_initial_description(image_bytes):
         messages=messages,
         max_tokens=600
     )
-    reply = completion.choices[0].message.content
-    messages = [{"role": "assistant", "content": reply}]
-    return session_id, messages, reply
+    
+    reply_text = completion.choices[0].message.content
+    return reply_text
+
 
 
 def continue_conversation(history, user_input):
