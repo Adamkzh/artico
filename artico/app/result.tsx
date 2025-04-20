@@ -23,7 +23,7 @@ const ResultScreen = () => {
   const scrollViewRef = useRef<ScrollView>(null);
   const textInputRef = useRef<TextInput>(null);
   
-  const initialMessage = "这幅画描绘的是《圣经·新约》中著名的场景——以马忤斯的晚餐。";
+  const initialMessage = "Better visual feedback for the disabled send button state";
 
   useEffect(() => {
     typeMessage(initialMessage);
@@ -38,7 +38,6 @@ const ResultScreen = () => {
     let currentIndex = 0;
     const messageId = Date.now().toString();
     
-    // Start playing audio immediately when typing begins
     playAudio(text, messageId);
     
     const typingInterval = setInterval(() => {
@@ -63,51 +62,47 @@ const ResultScreen = () => {
 
   const playAudio = async (text: string, messageId: string) => {
     try {
-      setMessages(prev => prev.map(msg => 
+      // 一开始标记自己为 audioPlaying=true
+      setMessages(prev => prev.map(msg =>
         msg.id === messageId ? { ...msg, audioPlaying: true } : msg
       ));
-      
+  
       await Speech.speak(text, {
         language: 'zh',
-        onStart: () => {
-          setMessages(prev => prev.map(msg => 
-            msg.id === messageId ? { ...msg, audioPlaying: true } : msg
-          ));
-        },
         onDone: () => {
-          setMessages(prev => prev.map(msg => 
+          setMessages(prev => prev.map(msg =>
             msg.id === messageId ? { ...msg, audioPlaying: false } : msg
           ));
         },
         onError: (error) => {
           console.error('Speech error:', error);
-          setMessages(prev => prev.map(msg => 
+          setMessages(prev => prev.map(msg =>
             msg.id === messageId ? { ...msg, audioPlaying: false } : msg
           ));
         }
       });
     } catch (error) {
       console.error('Error playing audio:', error);
-      setMessages(prev => prev.map(msg => 
+      setMessages(prev => prev.map(msg =>
         msg.id === messageId ? { ...msg, audioPlaying: false } : msg
       ));
     }
   };
+  
 
   const toggleAudio = async (message: Message) => {
-    try {
-      if (message.audioPlaying) {
-        await Speech.stop();
-        setMessages(prev => prev.map(msg => 
-          msg.id === message.id ? { ...msg, audioPlaying: false } : msg
-        ));
-      } else {
-        await playAudio(message.text, message.id);
-      }
-    } catch (error) {
-      console.error('Error toggling audio:', error);
+    if (message.audioPlaying) {
+      await Speech.stop();
+      setMessages(prev => prev.map(msg =>
+        msg.id === message.id ? { ...msg, audioPlaying: false } : msg
+      ));
+    } else {
+      await Speech.stop();
+      setMessages(prev => prev.map(msg => ({ ...msg, audioPlaying: false })));
+      await playAudio(message.text, message.id);
     }
   };
+  
 
   const handleSendMessage = () => {
     if (userInput.trim()) {
