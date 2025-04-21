@@ -26,6 +26,7 @@ class PromptGenerator:
         self.language_description = language_description
         self.target_language = Language.from_description(language_description)
         self.role = role if role in self.ROLE_STYLES else self.DEFAULT_ROLE
+        self.base_prompt = self.generate_context()
 
     def generate_role(self) -> str:
         """
@@ -68,6 +69,19 @@ class PromptGenerator:
             )
 
         return base_prompt
+    
+    def generate_structure_prompt(self) -> str:
+        """
+        Generate a special prompt that instructs GPT to return a structured JSON object.
+        """
+        return (
+                "Please analyze the artwork and respond ONLY with a JSON object containing: "
+                "- title: (string) the name of the artwork"
+                "- artist: (string) the name of the artist"
+                "- museum_name: (string) the name of the museum"
+                f"- description: (string) {self.base_prompt}"
+                "No extra explanations. Only output a pure JSON object."
+            )
 
     def generate_full_prompt(self) -> str:
         """

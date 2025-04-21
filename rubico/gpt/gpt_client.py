@@ -2,6 +2,7 @@ from openai import OpenAI
 import base64
 from session_store import init_session
 from gpt.promptGenerator import PromptGenerator
+from model import ArtworkMetadata
 
 client = OpenAI()
 
@@ -18,24 +19,27 @@ def generate_initial_description(image_bytes, language_description="English", ro
 
     base64_image = base64.b64encode(image_bytes).decode('utf-8')
     prompt_generator = PromptGenerator(language_description=language_description, role=role)
+    
     messages = [
         {"role": "system", "content": prompt_generator.generate_role()},
         {"role": "user", "content": [
-            {"type": "text", "text": prompt_generator.generate_context()},
+            {"type": "text", "text": prompt_generator.generate_structure_prompt()},
             {"type": "image_url", "image_url": {
                 "url": f"data:image/jpeg;base64,{base64_image}"
             }}
         ]}
     ]
     
-    completion = client.chat.completions.create(
+
+    completion = client.beta.chat.completions.parse(
         model="gpt-4o",
         messages=messages,
-        max_tokens=600
+        max_tokens=600,
+        response_format=ArtworkMetadata,
     )
     
-    reply_text = completion.choices[0].message.content
-    return reply_text
+    reply_json = completion.choices[0].message.parsed
+    return reply_json
 
 
 

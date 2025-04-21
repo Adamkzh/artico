@@ -2,6 +2,7 @@ from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 import uuid
 import os
+import json
 
 from session_store import init_session, get_session_history, update_session
 from gpt.gpt_client import generate_initial_description, continue_conversation
@@ -17,17 +18,34 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 @app.post("/recognize")
 async def upload_image(file: UploadFile = File(...)):
     image_bytes = await file.read()
-    
+
     session_id = str(uuid.uuid4())
-    
-    description = generate_initial_description(image_bytes)
+
+    # 1. Generate initial structured data (parsed JSON)
+    parsed_json = generate_initial_description(image_bytes)
+
+    # If parsed_json is still a JSON string, you need to parse it first
+    if isinstance(parsed_json, str):
+        parsed_json = json.loads(parsed_json)
+
+    # 2. Extract fields
+    title = parsed_json.get("title", "Unknown Artwork")
+    artist = parsed_json.get("artist", "Unknown Artist")
+    museum_name = parsed_json.get("museum_name", "Unknown Museum")
+    description = parsed_json.get("description", "")
+
+    # 3. Synthesize audio based on description
     audio_bytes = synthesize_speech(description)
     presigned_url = upload_file_and_get_presigned_url(audio_bytes, session_id)
-    
+
+    # 4. Return full structured response
     return JSONResponse({
         "session_id": session_id,
+        "title": title,
+        "artist": artist,
+        "museum_name": museum_name,
         "description": description,
-        "audio_url": presigned_url
+        "audio_description_url": presigned_url
     })
 
 @app.post("/followup")
