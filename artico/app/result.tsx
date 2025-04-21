@@ -7,7 +7,6 @@ import { getCollection } from '../database/collections';
 import { Audio } from 'expo-av';
 import { addSession, getSessionWithMessages, updateSessionMessages } from '../database/sessions';
 import { Message as DBMessage } from '../database/messages';
-import { v4 as uuidv4 } from 'uuid';
 
 const { width } = Dimensions.get('window');
 
@@ -71,7 +70,7 @@ const ResultScreen = () => {
         await addSession({
           artwork_id: collectionId
         });
-        const newSessionId = uuidv4();
+        const newSessionId = `session_${Date.now()}`;
         setSessionId(newSessionId);
       }
     };
@@ -91,13 +90,6 @@ const ResultScreen = () => {
             description: collection.description || '',
             session_id: sessionId
           });
-          
-          // Start the initial message with artwork information
-          if (collection.description) {
-            typeMessage(collection.description);
-          } else {
-            typeMessage(`This is ${collection.title} from ${collection.museum_name}.`);
-          }
         }
       } catch (error) {
         console.error('Error fetching artwork data:', error);
@@ -123,7 +115,7 @@ const ResultScreen = () => {
   const typeMessage = async (text: string, audioUrl?: string) => {
     setIsTyping(true);
     let currentIndex = 0;
-    const messageId = uuidv4();
+    const messageId = `message_${Date.now()}`;
     
     const uiMessage: UIMessage = {
       id: messageId,
@@ -219,7 +211,9 @@ const ResultScreen = () => {
   const handleSendMessage = async () => {
     if (userInput.trim()) {
       const userMessage = userInput.trim();
-      const messageId = uuidv4();
+      const messageId = `message_${Date.now()}`;
+      
+      console.log('Current sessionId:', sessionId);
       
       const uiMessage: UIMessage = {
         id: messageId,
@@ -230,6 +224,8 @@ const ResultScreen = () => {
       
       // Add user message to database
       const dbMessage = convertUIMessageToDB(uiMessage, sessionId);
+      console.log('DB Message:', dbMessage);
+      
       const allMessages = [...messages.map(msg => ({
         ...convertUIMessageToDB(msg, sessionId),
         created_at: Date.now()
@@ -237,11 +233,21 @@ const ResultScreen = () => {
         ...dbMessage,
         created_at: Date.now()
       }];
-      await updateSessionMessages(sessionId, allMessages);
       
+      try {
+        // Update messages in the database
+        await updateSessionMessages(sessionId, allMessages);
+        console.log('Messages saved successfully');
+      } catch (error) {
+        console.error('Error saving messages:', error);
+      }
+      
+      // Update UI state immediately
       setMessages(prev => [...prev, uiMessage]);
       setUserInput('');
-      textInputRef.current?.blur();
+      
+      // Scroll to the bottom
+      scrollViewRef.current?.scrollToEnd({ animated: true });
       
       // Simulate a response about the artwork
       setTimeout(() => {
@@ -261,8 +267,8 @@ const ResultScreen = () => {
   return (
     <KeyboardAvoidingView 
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
     >
       <TouchableOpacity
         style={styles.homeButton}
@@ -334,6 +340,7 @@ const ResultScreen = () => {
           placeholderTextColor="#666"
           multiline
           maxLength={200}
+          returnKeyType="send"
         />
         <TouchableOpacity
           style={[styles.sendButton, !userInput.trim() && styles.sendButtonDisabled]}
