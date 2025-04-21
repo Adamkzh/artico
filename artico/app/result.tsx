@@ -3,42 +3,148 @@ import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
+import { getCollection } from '../database/collections';
+import { Audio } from 'expo-av';
+import { addSession, getSessionWithMessages, updateSessionMessages } from '../database/sessions';
+import { Message as DBMessage } from '../database/messages';
+import { v4 as uuidv4 } from 'uuid';
 
 const { width } = Dimensions.get('window');
 
-interface Message {
+interface UIMessage {
   id: string;
   text: string;
   isUser: boolean;
   audioPlaying: boolean;
+  audioUrl?: string;
 }
+
+interface ArtworkData {
+  title: string;
+  museum: string;
+  imageUri: string;
+  description: string;
+  session_id?: string;
+}
+
+const convertDBMessageToUI = (dbMessage: DBMessage): UIMessage => ({
+  id: dbMessage.id,
+  text: dbMessage.text,
+  isUser: dbMessage.role === 'user',
+  audioPlaying: false,
+  audioUrl: dbMessage.audio_path
+});
+
+const convertUIMessageToDB = (uiMessage: UIMessage, sessionId: string): Omit<DBMessage, 'created_at'> => ({
+  id: uiMessage.id,
+  type: 'message',
+  session_id: sessionId,
+  role: uiMessage.isUser ? 'user' : 'assistant',
+  text: uiMessage.text,
+  audio_path: uiMessage.audioUrl
+});
 
 const ResultScreen = () => {
   const router = useRouter();
-  const { imageUri } = useLocalSearchParams<{ imageUri: string }>();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { collectionId, sessionId: initialSessionId } = useLocalSearchParams<{ collectionId: string; sessionId?: string }>();
+  const [sessionId, setSessionId] = useState<string>(initialSessionId || '');
+  const [messages, setMessages] = useState<UIMessage[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [userInput, setUserInput] = useState('');
+  const [artworkData, setArtworkData] = useState<ArtworkData | null>(null);
+  const [sound, setSound] = useState<Audio.Sound>();
   const scrollViewRef = useRef<ScrollView>(null);
   const textInputRef = useRef<TextInput>(null);
   
-  const initialMessage = "Better visual feedback for the disabled send button state";
+  useEffect(() => {
+    const initializeSession = async () => {
+      if (initialSessionId) {
+        // Load existing session and messages
+        const session = await getSessionWithMessages(initialSessionId);
+        if (session && session.messages) {
+          setSessionId(initialSessionId);
+          setMessages(session.messages.map(convertDBMessageToUI));
+        }
+      } else {
+        // Create new session
+        await addSession({
+          artwork_id: collectionId
+        });
+        const newSessionId = uuidv4();
+        setSessionId(newSessionId);
+      }
+    };
+
+    initializeSession();
+  }, [collectionId, initialSessionId]);
 
   useEffect(() => {
-    typeMessage(initialMessage);
+    const fetchArtworkData = async () => {
+      try {
+        const collection = await getCollection(collectionId);
+        if (collection) {
+          setArtworkData({
+            title: collection.title,
+            museum: collection.museum_name,
+            imageUri: collection.image_uri || '',
+            description: collection.description || '',
+            session_id: sessionId
+          });
+          
+          // Start the initial message with artwork information
+          if (collection.description) {
+            typeMessage(collection.description);
+          } else {
+            typeMessage(`This is ${collection.title} from ${collection.museum_name}.`);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching artwork data:', error);
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          text: 'Error loading artwork information. Please try again.',
+          isUser: false,
+          audioPlaying: false
+        }]);
+      }
+    };
+
+    fetchArtworkData();
     
     return () => {
       Speech.stop();
+      if (sound) {
+        sound.unloadAsync();
+      }
     };
-  }, []);
+  }, [collectionId, sessionId]);
 
-  const typeMessage = (text: string) => {
+  const typeMessage = async (text: string, audioUrl?: string) => {
     setIsTyping(true);
     let currentIndex = 0;
-    const messageId = Date.now().toString();
+    const messageId = uuidv4();
     
-    playAudio(text, messageId);
+    const uiMessage: UIMessage = {
+      id: messageId,
+      text,
+      isUser: false,
+      audioPlaying: false,
+      audioUrl
+    };
+    
+    // Add message to database
+    const dbMessage = convertUIMessageToDB(uiMessage, sessionId);
+    const allMessages = [...messages.map(msg => ({
+      ...convertUIMessageToDB(msg, sessionId),
+      created_at: Date.now()
+    })), {
+      ...dbMessage,
+      created_at: Date.now()
+    }];
+    await updateSessionMessages(sessionId, allMessages);
+    
+    playAudio(text, messageId, audioUrl);
     
     const typingInterval = setInterval(() => {
       if (currentIndex <= text.length) {
@@ -47,12 +153,7 @@ const ResultScreen = () => {
       } else {
         clearInterval(typingInterval);
         setIsTyping(false);
-        setMessages(prev => [...prev, {
-          id: messageId,
-          text,
-          isUser: false,
-          audioPlaying: false
-        }]);
+        setMessages(prev => [...prev, uiMessage]);
         setCurrentMessage('');
       }
     }, 30);
@@ -60,27 +161,34 @@ const ResultScreen = () => {
     return () => clearInterval(typingInterval);
   };
 
-  const playAudio = async (text: string, messageId: string) => {
+  const playAudio = async (text: string, messageId: string, audioUrl?: string) => {
     try {
-      // 一开始标记自己为 audioPlaying=true
       setMessages(prev => prev.map(msg =>
         msg.id === messageId ? { ...msg, audioPlaying: true } : msg
       ));
   
-      await Speech.speak(text, {
-        language: 'zh',
-        onDone: () => {
-          setMessages(prev => prev.map(msg =>
-            msg.id === messageId ? { ...msg, audioPlaying: false } : msg
-          ));
-        },
-        onError: (error) => {
-          console.error('Speech error:', error);
-          setMessages(prev => prev.map(msg =>
-            msg.id === messageId ? { ...msg, audioPlaying: false } : msg
-          ));
-        }
-      });
+      if (audioUrl) {
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: audioUrl },
+          { shouldPlay: true }
+        );
+        setSound(sound);
+      } else {
+        await Speech.speak(text, {
+          language: 'en',
+          onDone: () => {
+            setMessages(prev => prev.map(msg =>
+              msg.id === messageId ? { ...msg, audioPlaying: false } : msg
+            ));
+          },
+          onError: (error) => {
+            console.error('Speech error:', error);
+            setMessages(prev => prev.map(msg =>
+              msg.id === messageId ? { ...msg, audioPlaying: false } : msg
+            ));
+          }
+        });
+      }
     } catch (error) {
       console.error('Error playing audio:', error);
       setMessages(prev => prev.map(msg =>
@@ -88,43 +196,67 @@ const ResultScreen = () => {
       ));
     }
   };
-  
 
-  const toggleAudio = async (message: Message) => {
+  const toggleAudio = async (message: UIMessage) => {
     if (message.audioPlaying) {
       await Speech.stop();
+      if (sound) {
+        await sound.stopAsync();
+      }
       setMessages(prev => prev.map(msg =>
         msg.id === message.id ? { ...msg, audioPlaying: false } : msg
       ));
     } else {
       await Speech.stop();
+      if (sound) {
+        await sound.stopAsync();
+      }
       setMessages(prev => prev.map(msg => ({ ...msg, audioPlaying: false })));
-      await playAudio(message.text, message.id);
+      await playAudio(message.text, message.id, message.audioUrl);
     }
   };
-  
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (userInput.trim()) {
-      // Add user message
       const userMessage = userInput.trim();
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
+      const messageId = uuidv4();
+      
+      const uiMessage: UIMessage = {
+        id: messageId,
         text: userMessage,
         isUser: true,
         audioPlaying: false
-      }]);
+      };
       
-      // Clear input and hide keyboard
+      // Add user message to database
+      const dbMessage = convertUIMessageToDB(uiMessage, sessionId);
+      const allMessages = [...messages.map(msg => ({
+        ...convertUIMessageToDB(msg, sessionId),
+        created_at: Date.now()
+      })), {
+        ...dbMessage,
+        created_at: Date.now()
+      }];
+      await updateSessionMessages(sessionId, allMessages);
+      
+      setMessages(prev => [...prev, uiMessage]);
       setUserInput('');
       textInputRef.current?.blur();
       
-      // Simulate a response after a short delay
+      // Simulate a response about the artwork
       setTimeout(() => {
-        typeMessage("画面上，耶稣坐在桌子中央，正掰开面包，象征着圣餐与救赎。左侧和右侧的门徒表情激动，身体微微前倾，传达出那一刻认出耶稣的惊讶与感动。");
+        typeMessage("This artwork is a masterpiece that showcases the artist's unique style and technique. The composition and use of color create a powerful visual impact.");
       }, 1000);
     }
   };
+
+  if (!artworkData) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.loadingText}>Loading artwork...</Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView 
@@ -136,6 +268,9 @@ const ResultScreen = () => {
         style={styles.homeButton}
         onPress={() => {
           Speech.stop();
+          if (sound) {
+            sound.unloadAsync();
+          }
           router.push('/');
         }}
       >
@@ -147,7 +282,7 @@ const ResultScreen = () => {
         onPress={() => textInputRef.current?.blur()}
       >
         <Image
-          source={{ uri: imageUri }}
+          source={{ uri: artworkData.imageUri }}
           style={styles.image}
           resizeMode="cover"
         />
@@ -195,7 +330,7 @@ const ResultScreen = () => {
           style={styles.input}
           value={userInput}
           onChangeText={setUserInput}
-          placeholder="Ask me anything about this painting..."
+          placeholder="Ask me anything about this artwork..."
           placeholderTextColor="#666"
           multiline
           maxLength={200}
@@ -216,6 +351,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    textAlign: 'center',
+    marginTop: 50,
   },
   image: {
     width: width,

@@ -4,6 +4,7 @@ import { useColorScheme } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
+import { initDatabase } from '../database';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -22,6 +23,11 @@ export default function RootLayout() {
     'Inter': require('../assets/fonts/Inter-Regular.ttf'),
     'Inter-Bold': require('../assets/fonts/Inter-Bold.ttf'),
   });
+
+  // Initialize database
+  useEffect(() => {
+    initDatabase();
+  }, []);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
