@@ -88,4 +88,10 @@ export const deleteCollection = async (collectionId: string): Promise<void> => {
     console.error('Error deleting collection:', error);
     throw error;
   }
+};
+
+export const getAllCollections = async (): Promise<Collection[]> => {
+  return await db.getAllAsync<Collection>(
+    'SELECT * FROM collections ORDER BY created_at DESC'
+  );
 }; 
