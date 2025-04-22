@@ -15,9 +15,9 @@ app = FastAPI()
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-@app.post("/recognize")
-async def upload_image(file: UploadFile = File(...)):
-    image_bytes = await file.read()
+@app.post("/api/recognize")
+async def upload_image(image: UploadFile = File(...)):
+    image_bytes = await image.read()
 
     session_id = str(uuid.uuid4())
 
@@ -35,9 +35,9 @@ async def upload_image(file: UploadFile = File(...)):
     description = parsed_artworks_info.description
 
     # 3. Synthesize audio based on description
-    # audio_bytes = synthesize_speech(description)
-    # presigned_url = upload_file_and_get_presigned_url(audio_bytes, session_id)
-    presigned_url = "test_url"
+    audio_bytes = synthesize_speech(description)
+    presigned_url = upload_file_and_get_presigned_url(audio_bytes, session_id)
+    # presigned_url = "test_url"
 
     # 4. Return full structured response
     return JSONResponse({
@@ -49,7 +49,7 @@ async def upload_image(file: UploadFile = File(...)):
         "audio_description_url": presigned_url
     })
 
-@app.post("/followup")
+@app.post("/api/followup")
 async def ask_question(session_id: str = Form(...), user_input: str = Form(...)):
     history = get_session_history(session_id)
     print(history)
