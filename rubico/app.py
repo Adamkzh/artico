@@ -22,17 +22,18 @@ async def upload_image(file: UploadFile = File(...)):
     session_id = str(uuid.uuid4())
 
     # 1. Generate initial structured data (parsed JSON)
-    parsed_json = generate_initial_description(image_bytes)
+    parsed_artworks_info = generate_initial_description(image_bytes)
 
     # If parsed_json is still a JSON string, you need to parse it first
-    if isinstance(parsed_json, str):
-        parsed_json = json.loads(parsed_json)
+    if isinstance(parsed_artworks_info, str):
+        parsed_artworks_info = json.loads(parsed_artworks_info)
 
+    print(parsed_artworks_info)
     # 2. Extract fields
-    title = parsed_json.get("title", "Unknown Artwork")
-    artist = parsed_json.get("artist", "Unknown Artist")
-    museum_name = parsed_json.get("museum_name", "Unknown Museum")
-    description = parsed_json.get("description", "")
+    title = parsed_artworks_info.title
+    artist = parsed_artworks_info.artist
+    museum_name = parsed_artworks_info.museum_name
+    description = parsed_artworks_info.description
 
     # 3. Synthesize audio based on description
     audio_bytes = synthesize_speech(description)

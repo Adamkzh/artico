@@ -2,7 +2,7 @@ from openai import OpenAI
 import base64
 from session_store import init_session
 from gpt.promptGenerator import PromptGenerator
-from model import ArtworkMetadata
+from model.ArtworkMetadata import ArtworkMetadata
 
 client = OpenAI()
 
@@ -29,7 +29,6 @@ def generate_initial_description(image_bytes, language_description="English", ro
             }}
         ]}
     ]
-    
 
     completion = client.beta.chat.completions.parse(
         model="gpt-4o",
