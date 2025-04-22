@@ -9,7 +9,7 @@ class PromptGenerator:
             "You use simple, vivid language, and encourage imagination in your storytelling."
         ),
         "adult": (
-            "You are an experienced museum docent who speaks in a warm and engaging tone. "
+            "You are an experienced museum docent"
             "You explain the background, style, and significance of artworks in an accessible and friendly way."
         ),
         "senior": (
@@ -36,40 +36,49 @@ class PromptGenerator:
 
     def generate_context(self) -> str:
         """
-        Generate the context prompt (in English), customized by role.
+        Generate the context prompt (in English), customized by role,
+        focusing on appropriate storytelling style for each audience.
         """
+
         if self.role == "child":
             base_prompt = (
-                "Please create a spoken explanation about this artwork, aimed at young children. "
-                "Use simple, lively language, and feel free to spark imagination. "
-                "Avoid complex or technical terms.  Limit to about 30 seconds."
+                "Please create a fun and vivid spoken explanation about this artwork, aimed at young children. "
+                "Use simple, imaginative language and avoid complex or technical terms. "
+                "Briefly describe what the painting shows, what colors and shapes you see, and what kind of story it might be telling. "
                 f"The explanation should be spoken in {self.language_description}."
             )
+
         elif self.role == "senior":
             base_prompt = (
-                "Please create a spoken explanation about this artwork, suitable for senior visitors. "
-                "Use clear, warm, and respectful language, speak at a slightly slower pace, "
-                "and include information about the artist, creation time, and background.  Limit to about 60 seconds."
+                "Please create a warm, respectful spoken explanation about this artwork, suitable for senior visitors. "
+                "Speak at a slightly slower pace. Include five key aspects: "
+                "what the artwork depicts (its subject), how it's composed (style, color, brushwork), "
+                "the background story of the artist and historical context, the possible meaning or message behind the piece. "
                 f"The explanation should be spoken in {self.language_description}."
             )
+
         elif self.role == "expert":
             base_prompt = (
-                "Please create a professional spoken explanation about this artwork, intended for experts in art history. "
-                "Include discussions of style, techniques, background, and historical significance. "
-                "Use accurate terminology but keep it engaging. Limit to about 60 seconds. "
+                "Please generate a professional spoken analysis of this artwork, aimed at experts in art history. "
+                "Touch on the following aspects: subject matter and iconography, formal elements and techniques, "
+                "art historical and socio-political context, interpretive meaning, and lasting impact or critical reception. "
+                "Use precise terminology and a scholarly tone while keeping the narrative engaging. Limit to about 60 seconds. "
                 f"The explanation should be spoken in {self.language_description}."
             )
+
         else:  # default: adult
             base_prompt = (
-                "Please create a spoken explanation about this artwork for general visitors. "
-                "Use a natural and engaging tone, as if speaking face-to-face. "
-                "Include the artwork's name, artist, year of creation, story background, and artistic style. "
-                "Keep it around 30 seconds. "
+                "Please create a spoken explanation about this artwork, aimed at general visitors. "
+                "Speak in a natural, engaging tone, as if chatting face-to-face. "
+                "Focus on interesting stories, historical background, and little-known facts behind the creation of the artwork, "
+                "rather than just describing what’s in the painting. "
+                "Feel free to include emotional elements and vivid details to spark the listener's imagination. "
+                "No strict time limit — tell the story fully and captivatingly in your own words. "
                 f"The explanation should be spoken in {self.language_description}."
             )
 
         return base_prompt
-    
+
     def generate_structure_prompt(self) -> str:
         """
         Generate a special prompt that instructs GPT to return a structured JSON object.

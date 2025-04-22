@@ -28,7 +28,6 @@ async def upload_image(file: UploadFile = File(...)):
     if isinstance(parsed_artworks_info, str):
         parsed_artworks_info = json.loads(parsed_artworks_info)
 
-    print(parsed_artworks_info)
     # 2. Extract fields
     title = parsed_artworks_info.title
     artist = parsed_artworks_info.artist
@@ -36,8 +35,9 @@ async def upload_image(file: UploadFile = File(...)):
     description = parsed_artworks_info.description
 
     # 3. Synthesize audio based on description
-    audio_bytes = synthesize_speech(description)
-    presigned_url = upload_file_and_get_presigned_url(audio_bytes, session_id)
+    # audio_bytes = synthesize_speech(description)
+    # presigned_url = upload_file_and_get_presigned_url(audio_bytes, session_id)
+    presigned_url = "test_url"
 
     # 4. Return full structured response
     return JSONResponse({
