@@ -81,7 +81,9 @@ const ResultScreen = () => {
   useEffect(() => {
     const fetchArtworkData = async () => {
       try {
+        console.log('Fetching artwork data for collectionId:', collectionId);
         const collection = await getCollection(collectionId);
+        
         if (collection) {
           setArtworkData({
             title: collection.title,
@@ -90,6 +92,8 @@ const ResultScreen = () => {
             description: collection.description || '',
             session_id: sessionId
           });
+        } else {
+          console.log('No collection found for id:', collectionId);
         }
       } catch (error) {
         console.error('Error fetching artwork data:', error);

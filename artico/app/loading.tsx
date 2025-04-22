@@ -6,7 +6,7 @@ import { identifyArtwork } from '../services/artwork';
 import { addCollection } from '../database/collections';
 import { addSession } from '../database/sessions';
 import { addMessage } from '../database/messages';
-import { saveImageToFileSystem } from '../utils/fileSystem';
+import { saveImageToFileSystem, saveAudioToFileSystem } from '../utils/fileSystem';
 
 const LoadingScreen = () => {
   const router = useRouter();
@@ -29,12 +29,17 @@ const LoadingScreen = () => {
           artwork_id: artworkInfo.session_id,
         });
 
+        setStatus('Saving audio...');
+        const savedAudioUri = artworkInfo.audio_description_url 
+          ? await saveAudioToFileSystem(artworkInfo.audio_description_url)
+          : null;
+
         setStatus('Initializing conversation...');
         await addMessage({
           session_id: session.id,
           role: 'assistant',
           text: artworkInfo.description,
-          audio_path: artworkInfo.audio_description_url
+          audio_path: savedAudioUri || undefined
         });
         
         setStatus('Saving to collection...');
@@ -44,12 +49,10 @@ const LoadingScreen = () => {
           artist: artworkInfo.artist,
           image_uri: savedImageUri,
           description: artworkInfo.description,
-          session_id: session.id
+          session_id: artworkInfo.session_id
         });
 
-        setStatus('Complete!');
-        
-        // Navigate to result page with the collection ID and session ID
+        // Navigate to result page after all data is saved
         router.push({
           pathname: '/result',
           params: { 
@@ -57,6 +60,7 @@ const LoadingScreen = () => {
             sessionId: session.id
           }
         });
+
       } catch (error) {
         console.error('Error processing artwork:', error);
         setStatus('Error processing artwork. Please try again.');

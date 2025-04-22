@@ -15,16 +15,8 @@ export const initDatabase = async () => {
     const dbInfo = await FileSystem.getInfoAsync(dbPath);
     console.log('Database exists:', dbInfo.exists);
 
-    if (dbInfo.exists) {
-      // If database exists, try to drop and recreate tables
-      console.log('Dropping existing tables...');
-      await db.runAsync('DROP TABLE IF EXISTS sessions');
-      await db.runAsync('DROP TABLE IF EXISTS messages');
-      await db.runAsync('DROP TABLE IF EXISTS collections');
-    }
-
-    // Create tables
-    console.log('Creating tables...');
+    // Create tables if they don't exist
+    console.log('Creating tables if they don\'t exist...');
     await db.runAsync(
       'CREATE TABLE IF NOT EXISTS collections (id TEXT PRIMARY KEY, type TEXT, museum_name TEXT, museum_location TEXT, title TEXT, artist TEXT, image_uri TEXT, description TEXT, created_at INTEGER, session_id TEXT)'
     );
