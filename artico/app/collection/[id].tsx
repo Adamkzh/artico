@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, SafeAreaView } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getCollection } from '../../database/collections';
 import { Message, getMessagesBySession } from '../../database/messages';
 import { Audio, AVPlaybackStatus } from 'expo-av';
+import { BlurView } from 'expo-blur';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function CollectionDetail() {
   const { id } = useLocalSearchParams();
@@ -12,7 +15,7 @@ export default function CollectionDetail() {
   const [collection, setCollection] = useState<any>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const [isPlaying, setIsPlaying] = useState<string | null>(null); // Store currently playing message id
+  const [isPlaying, setIsPlaying] = useState<string | null>(null);
 
   useEffect(() => {
     const loadCollection = async () => {
@@ -28,7 +31,6 @@ export default function CollectionDetail() {
 
     loadCollection();
 
-    // Cleanup function to stop audio when leaving the page
     return () => {
       if (sound) {
         sound.unloadAsync();
@@ -38,11 +40,8 @@ export default function CollectionDetail() {
 
   const handlePlayPause = async (messageId: string, audioPath: string) => {
     try {
-      // If there's already a sound playing
       if (sound) {
-        // If it's the same message that's currently playing
         if (isPlaying === messageId) {
-          // Toggle pause/play
           const status = await sound.getStatusAsync();
           if ('isPlaying' in status && status.isPlaying) {
             await sound.pauseAsync();
@@ -53,18 +52,15 @@ export default function CollectionDetail() {
           }
           return;
         } else {
-          // Stop the current sound if it's a different message
           await sound.unloadAsync();
         }
       }
 
-      // Create and play new sound
       const { sound: newSound } = await Audio.Sound.createAsync(
         { uri: audioPath },
         { shouldPlay: true }
       );
 
-      // When audio finishes playing
       newSound.setOnPlaybackStatusUpdate((status) => {
         if ('didJustFinish' in status && status.didJustFinish) {
           setIsPlaying(null);
@@ -90,52 +86,73 @@ export default function CollectionDetail() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
-        <ScrollView style={styles.content}>
-          {collection.image_uri && (
-            <Image
-              source={{ uri: collection.image_uri }}
-              style={styles.image}
-              resizeMode="cover"
-            />
-          )}
-
-          <View style={styles.infoContainer}>
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
+        {collection.image_uri && (
+          <Image
+            source={{ uri: collection.image_uri }}
+            style={styles.backgroundImage}
+            resizeMode="cover"
+          />
+        )}
+        
+        <SafeAreaView style={styles.overlay}>
+          {/* Top Navigation */}
+          <View style={styles.topNav}>
+            <TouchableOpacity onPress={() => router.back()}>
               <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
             </TouchableOpacity>
-            <Text style={styles.title}>{collection.title}</Text>
-            <Text style={styles.museum}>{collection.museum_name}</Text>
+            <View style={styles.topNavRight}>
+              <TouchableOpacity style={styles.iconButton}>
+                <Ionicons name="scan-outline" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          <View style={styles.conversationsContainer}>
-            {messages.map((message) => (
-              <View key={message.id} style={styles.messageContainer}>
-                <Text style={styles.messageRole}>
-                  {message.role === 'user' ? 'You' : 'Assistant'}
-                </Text>
-                <Text style={styles.messageContent}>{message.text}</Text>
-                {message.audio_path && (
-                  <TouchableOpacity
-                    style={[
-                      styles.audioButton,
-                      isPlaying === message.id && styles.audioButtonPlaying
-                    ]}
-                    onPress={() => handlePlayPause(message.id, message.audio_path!)}
-                  >
-                    <Ionicons 
-                      name={isPlaying === message.id ? "pause" : "play"} 
-                      size={24} 
-                      color="#FFFFFF" 
-                    />
-                  </TouchableOpacity>
-                )}
+          {/* Info Card and Messages */}
+          <View style={styles.bottomSection}>
+            <BlurView intensity={20} style={styles.infoCard}>
+              <Text style={styles.title}>{collection.title}</Text>
+              <View style={styles.museumInfo}>
+                <Text style={styles.artist}>{collection.artist} • {collection.created_at}</Text>
+                <Text style={styles.museum}>{collection.museum_name}</Text>
               </View>
-            ))}
+              <View style={styles.actions}>
+                <TouchableOpacity style={styles.actionButton}>
+                  <Ionicons name="heart-outline" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.actionButton}>
+                  <Ionicons name="share-outline" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Messages Section */}
+              <ScrollView style={styles.messagesSection}>
+                {messages.map((message) => (
+                  <View key={message.id} style={styles.messageContainer}>
+                    <Text style={styles.messageRole}>
+                      {message.role === 'user' ? 'You' : 'Assistant'}
+                    </Text>
+                    <Text style={styles.messageContent}>{message.text}</Text>
+                    {message.audio_path && (
+                      <TouchableOpacity
+                        style={[
+                          styles.audioButton,
+                          isPlaying === message.id && styles.audioButtonPlaying
+                        ]}
+                        onPress={() => handlePlayPause(message.id, message.audio_path!)}
+                      >
+                        <Ionicons 
+                          name={isPlaying === message.id ? "pause" : "play"} 
+                          size={24} 
+                          color="#FFFFFF" 
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+              </ScrollView>
+            </BlurView>
           </View>
-        </ScrollView>
+        </SafeAreaView>
       </View>
     </>
   );
@@ -146,36 +163,72 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  content: {
+  backgroundImage: {
+    position: 'absolute',
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+  },
+  overlay: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.2)',
   },
-  image: {
-    width: '100%',
-    height: 300,
+  topNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
-  infoContainer: {
+  topNavRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconButton: {
+    marginLeft: 20,
+  },
+  bottomSection: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  infoCard: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     padding: 20,
-  },
-  backButton: {
-    marginBottom: 15,
+    height: SCREEN_HEIGHT * 0.7,
   },
   title: {
     color: '#FFFFFF',
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 5,
+    marginBottom: 8,
+  },
+  museumInfo: {
+    marginBottom: 16,
+  },
+  artist: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    opacity: 0.9,
+    marginBottom: 4,
   },
   museum: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 14,
     opacity: 0.7,
-    marginBottom: 10,
   },
-  conversationsContainer: {
-    padding: 20,
+  actions: {
+    flexDirection: 'row',
+    marginBottom: 20,
+  },
+  actionButton: {
+    marginRight: 20,
+  },
+  messagesSection: {
+    flex: 1,
   },
   messageContainer: {
-    backgroundColor: '#1A1A1A',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 10,
     padding: 15,
     marginBottom: 10,
@@ -195,13 +248,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#333333',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 10,
   },
   audioButtonPlaying: {
-    backgroundColor: '#666666',
+    backgroundColor: 'rgba(255,255,255,0.4)',
   },
   loadingText: {
     color: '#FFFFFF',
