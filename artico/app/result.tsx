@@ -67,11 +67,8 @@ const ResultScreen = () => {
         }
       } else {
         // Create new session
-        await addSession({
-          artwork_id: collectionId
-        });
-        const newSessionId = `session_${Date.now()}`;
-        setSessionId(newSessionId);
+        const session = await addSession({ artwork_id: collectionId });
+        setSessionId(session.id);
       }
     };
 

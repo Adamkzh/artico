@@ -18,7 +18,7 @@ export const identifyArtwork = async (imageUri: string): Promise<ArtworkInfo> =>
   //   } as any);
 
   //   // Call the backend API
-  //   const response = await fetch('http://localhost:8000/api/recognize', {
+  //   const response = await fetch('http://192.168.1.6:8000/api/recognize', {
   //     method: 'POST',
   //     body: formData,
   //     headers: {

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Dimensions, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Collection, getAllCollections } from '../database/collections';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COLUMN_GAP = 12;
@@ -14,6 +15,8 @@ const HomeScreen = () => {
   const [date, setDate] = useState('');
   const [greeting, setGreeting] = useState('');
   const [collections, setCollections] = useState<Collection[]>([]);
+  const isFocused = useIsFocused();
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     // Update date and greeting
@@ -47,6 +50,24 @@ const HomeScreen = () => {
     loadCollections();
 
     return () => clearInterval(interval);
+  }, []);
+
+  // Auto-refresh collections when focused
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadCollections = async () => {
+        const collectionsData = await getAllCollections();
+        setCollections(collectionsData);
+      };
+      loadCollections();
+    }, [])
+  );
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    const collectionsData = await getAllCollections();
+    setCollections(collectionsData);
+    setRefreshing(false);
   }, []);
 
   const renderCollectionGrid = () => {
@@ -92,37 +113,47 @@ const HomeScreen = () => {
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header Section */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.date}>{date}</Text>
-          <Text style={styles.greeting}>{greeting}</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.profileButton}
-          onPress={() => router.push('/profile')}
+    <View style={{ flex: 1 }}>
+      {isFocused && (
+        <ScrollView
+          style={styles.container}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />
+          }
         >
-          <Ionicons name="person" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
+          {/* Header Section */}
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.date}>{date}</Text>
+              <Text style={styles.greeting}>{greeting}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.profileButton}
+              onPress={() => router.push('/profile')}
+            >
+              <Ionicons name="person" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
 
-      {/* Camera Button */}
-      <View style={styles.cameraSection}>
-        <TouchableOpacity
-          style={styles.cameraButton}
-          onPress={() => router.push('/camera')}
-        >
-          <Ionicons name="camera" size={40} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
+          {/* Camera Button */}
+          <View style={styles.cameraSection}>
+            <TouchableOpacity
+              style={styles.cameraButton}
+              onPress={() => router.push('/camera')}
+            >
+              <Ionicons name="camera" size={40} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
 
-      {/* Collections Grid */}
-      <View style={styles.collectionsSection}>
-        <Text style={styles.sectionTitle}>Your Collections</Text>
-        {renderCollectionGrid()}
-      </View>
-    </ScrollView>
+          {/* Collections Grid */}
+          <View style={styles.collectionsSection}>
+            <Text style={styles.sectionTitle}>Your Collections</Text>
+            {renderCollectionGrid()}
+          </View>
+        </ScrollView>
+      )}
+    </View>
   );
 };
 

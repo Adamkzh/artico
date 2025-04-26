@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, SafeAreaView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getCollection } from '../../database/collections';
+import { getCollection, deleteCollection } from '../../database/collections';
 import { Message, getMessagesBySession } from '../../database/messages';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import { BlurView } from 'expo-blur';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const INFO_CARD_HEIGHT = SCREEN_HEIGHT * 0.7;
 
 export default function CollectionDetail() {
   const { id } = useLocalSearchParams();
@@ -16,14 +17,19 @@ export default function CollectionDetail() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState<string | null>(null);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
 
   useEffect(() => {
     const loadCollection = async () => {
       if (typeof id === 'string') {
+        console.log('Loading collection with id:', id);
         const collectionData = await getCollection(id);
+        console.log('Collection data:', collectionData);
         if (collectionData) {
           setCollection(collectionData);
+          console.log('Loading messages for session_id:', collectionData.session_id);
           const messagesData = await getMessagesBySession(collectionData.session_id);
+          console.log('Messages data:', messagesData);
           setMessages(messagesData);
         }
       }
@@ -37,6 +43,29 @@ export default function CollectionDetail() {
       }
     };
   }, [id]);
+
+  const handleDelete = () => {
+    Alert.alert(
+      "Delete Collection",
+      "Are you sure you want to delete this collection? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            if (typeof id === 'string') {
+              await deleteCollection(id);
+              router.back();
+            }
+          }
+        }
+      ]
+    );
+  };
 
   const handlePlayPause = async (messageId: string, audioPath: string) => {
     try {
@@ -85,75 +114,79 @@ export default function CollectionDetail() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: '#000' }]}>
+        {/* Top Navigation */}
+        <View style={styles.topNav}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <View style={styles.topNavRight}>
+            <TouchableOpacity style={styles.iconButton} onPress={handleDelete}>
+              <Ionicons name="trash-outline" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconButton}>
+              <Ionicons name="scan-outline" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Artwork Image at the Top */}
         {collection.image_uri && (
           <Image
             source={{ uri: collection.image_uri }}
-            style={styles.backgroundImage}
+            style={styles.topImage}
             resizeMode="cover"
           />
         )}
-        
-        <SafeAreaView style={styles.overlay}>
-          {/* Top Navigation */}
-          <View style={styles.topNav}>
-            <TouchableOpacity onPress={() => router.back()}>
-              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <View style={styles.topNavRight}>
-              <TouchableOpacity style={styles.iconButton}>
-                <Ionicons name="scan-outline" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-          </View>
 
-          {/* Info Card and Messages */}
-          <View style={styles.bottomSection}>
-            <BlurView intensity={20} style={styles.infoCard}>
-              <Text style={styles.title}>{collection.title}</Text>
-              <View style={styles.museumInfo}>
-                <Text style={styles.artist}>{collection.artist} • {collection.created_at}</Text>
-                <Text style={styles.museum}>{collection.museum_name}</Text>
-              </View>
-              <View style={styles.actions}>
-                <TouchableOpacity style={styles.actionButton}>
-                  <Ionicons name="heart-outline" size={24} color="#FFFFFF" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
-                  <Ionicons name="share-outline" size={24} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-
-              {/* Messages Section */}
-              <ScrollView style={styles.messagesSection}>
-                {messages.map((message) => (
-                  <View key={message.id} style={styles.messageContainer}>
-                    <Text style={styles.messageRole}>
-                      {message.role === 'user' ? 'You' : 'Assistant'}
-                    </Text>
-                    <Text style={styles.messageContent}>{message.text}</Text>
-                    {message.audio_path && (
-                      <TouchableOpacity
-                        style={[
-                          styles.audioButton,
-                          isPlaying === message.id && styles.audioButtonPlaying
-                        ]}
-                        onPress={() => handlePlayPause(message.id, message.audio_path!)}
-                      >
-                        <Ionicons 
-                          name={isPlaying === message.id ? "pause" : "play"} 
-                          size={24} 
-                          color="#FFFFFF" 
-                        />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                ))}
-              </ScrollView>
-            </BlurView>
+        {/* Title and Metadata Block */}
+        <View style={styles.metaBlock}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>{collection.title}</Text>
+            <Text style={styles.artistMeta}>
+              {collection.artist}
+              {collection.created_at ? ` • ${collection.created_at}` : ''}
+            </Text>
+            <Text style={styles.museumMeta}>{collection.museum_name}</Text>
           </View>
-        </SafeAreaView>
-      </View>
+          {/* Example: If you have a museum logo uri, display it here */}
+          {collection.museum_logo_uri && (
+            <Image source={{ uri: collection.museum_logo_uri }} style={styles.museumLogo} resizeMode="contain" />
+          )}
+        </View>
+
+        {/* Messages Section */}
+        <ScrollView
+          style={[styles.scrollSection, { backgroundColor: '#000' }]}
+          contentContainerStyle={{ paddingBottom: 40 }}
+        >
+          <View style={styles.messagesSection}>
+            {messages.map((message) => (
+              <View key={message.id} style={styles.messageContainer}>
+                <Text style={styles.messageRole}>
+                  {message.role === 'user' ? 'You' : 'Assistant'}
+                </Text>
+                <Text style={styles.messageContent}>{message.text}</Text>
+                {message.audio_path && (
+                  <TouchableOpacity
+                    style={[
+                      styles.audioButton,
+                      isPlaying === message.id && styles.audioButtonPlaying
+                    ]}
+                    onPress={() => handlePlayPause(message.id, message.audio_path!)}
+                  >
+                    <Ionicons 
+                      name={isPlaying === message.id ? "pause" : "play"} 
+                      size={24} 
+                      color="#FFFFFF" 
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     </>
   );
 }
@@ -163,14 +196,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  backgroundImage: {
-    position: 'absolute',
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+  topImage: {
+    width: '90%',
+    aspectRatio: 1,
+    alignSelf: 'center',
+    borderRadius: 20,
+    marginTop: 10,
+    marginBottom: 10,
+    backgroundColor: '#222',
   },
-  overlay: {
+  scrollSection: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  infoCard: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    padding: 20,
+    marginHorizontal: 16,
+    marginBottom: 16,
   },
   topNav: {
     flexDirection: 'row',
@@ -186,36 +229,29 @@ const styles = StyleSheet.create({
   iconButton: {
     marginLeft: 20,
   },
-  bottomSection: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  infoCard: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    height: SCREEN_HEIGHT * 0.7,
-  },
   title: {
     color: '#FFFFFF',
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  museumInfo: {
-    marginBottom: 16,
-  },
-  artist: {
+  artistMeta: {
     color: '#FFFFFF',
     fontSize: 16,
     opacity: 0.9,
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  museum: {
+  museumMeta: {
     color: '#FFFFFF',
     fontSize: 14,
     opacity: 0.7,
+  },
+  museumLogo: {
+    width: 48,
+    height: 48,
+    marginLeft: 12,
+    borderRadius: 8,
+    backgroundColor: '#fff',
   },
   actions: {
     flexDirection: 'row',
@@ -261,5 +297,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginTop: 20,
+  },
+  metaBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 8,
+    marginTop: 4,
   },
 }); 

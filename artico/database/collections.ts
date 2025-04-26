@@ -72,10 +72,26 @@ export const updateCollection = async (collection: Collection): Promise<Collecti
 
 export const deleteCollection = async (collectionId: string): Promise<void> => {
   try {
-    // Get the collection first to get the image URI
+    // Get the collection first to get the image URI and session_id
     const collection = await getCollection(collectionId);
-    if (collection && collection.image_uri) {
-      // Delete the image file
+    if (!collection) {
+      throw new Error('Collection not found');
+    }
+
+    // Delete associated messages
+    await db.runAsync(
+      'DELETE FROM messages WHERE session_id = ?',
+      [collection.session_id]
+    );
+
+    // Delete associated session
+    await db.runAsync(
+      'DELETE FROM sessions WHERE id = ?',
+      [collection.session_id]
+    );
+
+    // Delete the image file if it exists
+    if (collection.image_uri) {
       await deleteImageFromFileSystem(collection.image_uri);
     }
     
