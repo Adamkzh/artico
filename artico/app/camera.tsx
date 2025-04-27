@@ -107,9 +107,9 @@ const styles = StyleSheet.create({
   bottomPanel: {
     position: 'absolute', left: 0, right: 0, bottom: 0, height: 160,
     backgroundColor: '#fafafa', borderTopLeftRadius: 32, borderTopRightRadius: 32,
-    alignItems: 'center', justifyContent: 'center', paddingBottom: 24,
+    alignItems: 'center', justifyContent: 'space-between', paddingBottom: 24,
     shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { height: -2, width: 0 },
-    flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 40,
+    flexDirection: 'row', paddingHorizontal: 40,
   },
   backButton: {
     width: 48, height: 48, borderRadius: 24, backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, zIndex: 2,

@@ -130,7 +130,7 @@ const ProfileScreen = () => {
               <TouchableOpacity
                 key={role.id}
                 style={[styles.languageCell, pendingRole === role.id && styles.languageCellSelected]}
-                onPress={() => setPendingRole(role.id)}
+                onPress={() => setPendingRole(role.id as "adult" | "child" | "senior" | "expert")}
               >
                 <Text style={styles.flag}>{role.icon}</Text>
                 <Text style={styles.languageName}>{getRoleLabel(role.id)}</Text>
