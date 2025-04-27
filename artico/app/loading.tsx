@@ -6,11 +6,10 @@ import { identifyArtwork } from '../services/artwork';
 import { addCollection } from '../database/collections';
 import { addSession } from '../database/sessions';
 import { addMessage } from '../database/messages';
-import { saveImageToFileSystem, saveAudioToFileSystem } from '../utils/fileSystem';
+import { saveImageToFileSystem } from '../utils/fileSystem';
 import { useLanguage } from '../utils/i18n/LanguageContext';
 import { useRole } from '../utils/i18n/RoleContext';
 import { Ionicons } from '@expo/vector-icons';
-
 
 const LoadingScreen = () => {
   const router = useRouter();
@@ -36,17 +35,11 @@ const LoadingScreen = () => {
           session_id: artworkInfo.session_id
         });
 
-        setStatus('Saving audio...');
-        const savedAudioUri = artworkInfo.audio_description_url 
-          ? await saveAudioToFileSystem(artworkInfo.audio_description_url)
-          : null;
-
         setStatus('Initializing conversation...');
         await addMessage({
           session_id: session.id,
           role: 'assistant',
-          text: artworkInfo.description,
-          audio_path: savedAudioUri || undefined
+          text: artworkInfo.description
         });
         
         setStatus('Saving to collections...');
@@ -59,7 +52,7 @@ const LoadingScreen = () => {
           session_id: artworkInfo.session_id
         });
 
-        // Navigate directly to collection detail page
+        // Navigate to collection detail page
         router.push({
           pathname: '/collection/[id]',
           params: { id: collection.id }

@@ -5,12 +5,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { getCollection, deleteCollection } from '../../database/collections';
 import { Message, getMessagesBySession, addMessage } from '../../database/messages';
 import { Audio, AVPlaybackStatus } from 'expo-av';
-import { BlurView } from 'expo-blur';
+import { useFocusEffect } from 'expo-router';
 import { generateResponse } from '../../services/chat';
 import { useLanguage } from '../../utils/i18n/LanguageContext';
+import { pollAudioUrl } from '../../services/audio';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const INFO_CARD_HEIGHT = SCREEN_HEIGHT * 0.7;
 
 export default function CollectionDetail() {
   const { id } = useLocalSearchParams();
@@ -23,6 +22,7 @@ export default function CollectionDetail() {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isAudioReady, setIsAudioReady] = useState(false);
 
   useEffect(() => {
     const loadCollection = async () => {
@@ -32,21 +32,54 @@ export default function CollectionDetail() {
           setCollection(collectionData);
           const messagesData = await getMessagesBySession(collectionData.session_id);
           setMessages(messagesData);
+
+          // Check if we already have audio
+          const hasAudio = messagesData.some(msg => msg.audio_path);
+          if (hasAudio) {
+            setIsAudioReady(true);
+          } else {
+            // Start polling for audio
+            pollAudioUrl({
+              sessionId: collectionData.session_id,
+              description: collectionData.description || '',
+              onSuccess: async () => {
+                const updatedMessages = await getMessagesBySession(collectionData.session_id);
+                setMessages(updatedMessages);
+                setIsAudioReady(true);
+              },
+              onError: (error) => console.error('Error polling audio:', error)
+            });
+          }
         }
       }
     };
 
+
     loadCollection();
 
+    // Cleanup function to stop audio when leaving the page
     return () => {
-      // Cleanup audio when leaving the page
       if (sound) {
+        sound.stopAsync();
         sound.unloadAsync();
         setSound(null);
         setIsPlaying(null);
       }
     };
-  }, [id]);
+  }, [sound]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        if (sound) {
+          sound.stopAsync();
+          sound.unloadAsync();
+          setSound(null);
+          setIsPlaying(null);
+        }
+      };
+    }, [sound])
+  );
 
   const handleDelete = () => {
     Alert.alert(
@@ -63,7 +96,7 @@ export default function CollectionDetail() {
           onPress: async () => {
             if (typeof id === 'string') {
               await deleteCollection(id);
-              router.back();
+              router.push('/');
             }
           }
         }
@@ -168,32 +201,6 @@ export default function CollectionDetail() {
           </View>
         </View>
 
-        {/* Artwork Image at the Top */}
-        {collection.image_uri && (
-          <Image
-            source={{ uri: collection.image_uri }}
-            style={styles.topImage}
-            resizeMode="cover"
-          />
-        )}
-
-        {/* Title and Metadata Block */}
-        <View style={styles.metaBlock}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.title}>{collection.title}</Text>
-            <Text style={styles.artistMeta}>
-              {collection.artist}
-              {collection.created_at ? ` • ${collection.created_at}` : ''}
-            </Text>
-            <Text style={styles.museumMeta}>{collection.museum_name}</Text>
-          </View>
-          {/* Example: If you have a museum logo uri, display it here */}
-          {collection.museum_logo_uri && (
-            <Image source={{ uri: collection.museum_logo_uri }} style={styles.museumLogo} resizeMode="contain" />
-          )}
-        </View>
-
-        {/* Messages Section */}
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={{ flex: 1 }}
@@ -202,6 +209,62 @@ export default function CollectionDetail() {
             style={[styles.scrollSection, { backgroundColor: '#000' }]}
             contentContainerStyle={{ paddingBottom: 40 }}
           >
+            {/* Artwork Image */}
+            {collection.image_uri && (
+              <View style={styles.imageContainer}>
+                <Image
+                  source={{ uri: collection.image_uri }}
+                  style={styles.topImage}
+                  resizeMode="cover"
+                  onLoadStart={() => setIsImageLoaded(false)}
+                  onLoadEnd={() => setIsImageLoaded(true)}
+                />
+                {!isImageLoaded && (
+                  <View style={styles.imageLoadingContainer}>
+                    <Text style={styles.imageLoadingText}>{t('loading')}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Title and Metadata Block */}
+            <View style={styles.metaBlock}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.title}>{collection.title}</Text>
+                <View style={styles.artistRow}>
+                  <Text style={styles.artistMeta} numberOfLines={1}>
+                    {collection.artist}
+                  </Text>
+                  <View style={styles.artistRight}>
+                    {collection.museum_logo_uri && (
+                      <Image source={{ uri: collection.museum_logo_uri }} style={styles.museumLogo} resizeMode="contain" />
+                    )}
+                    <TouchableOpacity
+                      style={[
+                        styles.titleAudioButton,
+                        isAudioReady && styles.titleAudioButtonActive
+                      ]}
+                      onPress={() => {
+                        if (!isAudioReady) return;
+                        const messageWithAudio = messages.find(msg => msg.audio_path);
+                        if (messageWithAudio) {
+                          handlePlayPause(messageWithAudio.id, messageWithAudio.audio_path!);
+                        }
+                      }}
+                    >
+                      <Ionicons 
+                        name={isPlaying ? "pause" : "play"} 
+                        size={24} 
+                        color={isAudioReady ? "#FFFFFF" : "#666666"} 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <Text style={styles.museumMeta}>{collection.museum_name}</Text>
+              </View>
+            </View>
+
+            {/* Messages Section */}
             <View style={styles.messagesSection}>
               {messages.map((message) => (
                 <View key={message.id} style={styles.messageContainer}>
@@ -209,21 +272,6 @@ export default function CollectionDetail() {
                     {message.role === 'user' ? t('you') : t('assistant')}
                   </Text>
                   <Text style={styles.messageContent}>{message.text}</Text>
-                  {message.audio_path && (
-                    <TouchableOpacity
-                      style={[
-                        styles.audioButton,
-                        isPlaying === message.id && styles.audioButtonPlaying
-                      ]}
-                      onPress={() => handlePlayPause(message.id, message.audio_path!)}
-                    >
-                      <Ionicons 
-                        name={isPlaying === message.id ? "pause" : "play"} 
-                        size={24} 
-                        color="#FFFFFF" 
-                      />
-                    </TouchableOpacity>
-                  )}
                 </View>
               ))}
             </View>
@@ -263,6 +311,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   topImage: {
+    width: '100%',
+    height: '100%',
+  },
+  imageContainer: {
     width: '90%',
     aspectRatio: 1,
     alignSelf: 'center',
@@ -270,6 +322,21 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 10,
     backgroundColor: '#222',
+    overflow: 'hidden',
+  },
+  imageLoadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#222',
+  },
+  imageLoadingText: {
+    color: '#FFFFFF',
+    fontSize: 16,
   },
   scrollSection: {
     flex: 1,
@@ -301,11 +368,23 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 4,
   },
+  artistRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
   artistMeta: {
     color: '#FFFFFF',
     fontSize: 16,
     opacity: 0.9,
-    marginBottom: 2,
+    flex: 1,
+    marginRight: 12,
+  },
+  artistRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 0,
   },
   museumMeta: {
     color: '#FFFFFF',
@@ -327,7 +406,7 @@ const styles = StyleSheet.create({
     marginRight: 20,
   },
   messagesSection: {
-    flex: 1,
+    paddingHorizontal: 20,
   },
   messageContainer: {
     backgroundColor: 'rgba(255,255,255,0.1)',
@@ -346,18 +425,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     opacity: 0.8,
   },
-  audioButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  audioButtonPlaying: {
-    backgroundColor: 'rgba(255,255,255,0.4)',
-  },
   loadingText: {
     color: '#FFFFFF',
     fontSize: 16,
@@ -368,8 +435,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 20,
-    marginBottom: 8,
-    marginTop: 4,
+    marginBottom: 20,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -399,5 +465,17 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  titleAudioButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+  },
+  titleAudioButtonActive: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
 }); 

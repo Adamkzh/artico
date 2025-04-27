@@ -19,7 +19,7 @@ def generate_initial_description(image_bytes, language="en", role="adult"):
 
     base64_image = base64.b64encode(image_bytes).decode('utf-8')
     prompt_generator = PromptGenerator(language=language, role=role)
-    
+    print("Generating initial description...")
     messages = [
         {"role": "system", "content": prompt_generator.generate_role()},
         {"role": "user", "content": [

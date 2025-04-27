@@ -84,3 +84,68 @@ def upload_file_and_get_presigned_url(
         raise Exception("AWS credentials not found. Please check your environment variables.")
     except ClientError as e:
         raise Exception(f"Failed to upload or generate URL: {e}")
+
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def get_presigned_url_by_session_id(
+        session_id: str,
+        expiration_seconds: int = 300,
+        bucket_name: Optional[str] = None,
+        prefix: str = "sessions",
+        extension: str = "mp3"
+) -> Optional[str]:
+    """
+    Finds the audio file with the specified session_id on S3 and returns its presigned URL.
+    Returns None if no file is found.
+
+    Args:
+        session_id (str): Session ID to look up.
+        expiration_seconds (int): How long the pre-signed URL is valid (default: 300 seconds).
+        bucket_name (Optional[str]): Optionally override the default bucket.
+        prefix (str): Top-level folder in S3 (default: 'sessions').
+        extension (str): File extension without the leading dot (default: 'mp3').
+
+    Returns:
+        Optional[str]: A pre-signed URL to access the file, or None if not found.
+    """
+    bucket = bucket_name or S3_BUCKET_NAME
+    prefix = f"{prefix}/{session_id}/"
+
+    logger.info(f"[get_presigned_url_by_session_id] Looking for audio file in bucket '{bucket}' with prefix '{prefix}'")
+
+    try:
+        response = s3_client.list_objects_v2(Bucket=bucket, Prefix=prefix)
+        contents = response.get('Contents', [])
+
+        if not contents:
+            logger.info(f"[get_presigned_url_by_session_id] No audio file found for session_id: {session_id}")
+            return None
+
+        logger.info(f"[get_presigned_url_by_session_id] Found {len(contents)} files for session_id: {session_id}")
+
+        # Find the latest file by timestamp in the filename
+        latest_obj = max(contents, key=lambda x: int(x['Key'].split('/')[-1].split('.')[0]))
+        object_key = latest_obj['Key']
+
+        logger.info(f"[get_presigned_url_by_session_id] Latest object key for session_id {session_id}: {object_key}")
+
+        presigned_url = s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': bucket, 'Key': object_key},
+            ExpiresIn=expiration_seconds
+        )
+
+        logger.info(
+            f"[get_presigned_url_by_session_id] Successfully generated presigned URL for session_id: {session_id}")
+        return presigned_url
+
+    except Exception as e:
+        logger.error(
+            f"[get_presigned_url_by_session_id] Error while getting presigned url for session_id {session_id}: {e}",
+            exc_info=True)
+        return None
+

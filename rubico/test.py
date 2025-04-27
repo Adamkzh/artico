@@ -3,7 +3,7 @@
 
 
 from gpt.tts_client import synthesize_speech
-from utils.s3uploader import upload_file_and_get_presigned_url
+from utils.s3Server import upload_file_and_get_presigned_url
 
 
 def test_synthesize_speech():
