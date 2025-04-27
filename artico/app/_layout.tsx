@@ -5,6 +5,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { initDatabase } from '../database';
+import { LanguageProvider } from '../utils/i18n/LanguageContext';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -45,7 +46,11 @@ export default function RootLayout() {
     return null;
   }
 
-  return <RootLayoutNav />;
+  return (
+    <LanguageProvider>
+      <RootLayoutNav />
+    </LanguageProvider>
+  );
 }
 
 function RootLayoutNav() {

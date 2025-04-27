@@ -7,6 +7,7 @@ import { addCollection } from '../database/collections';
 import { addSession } from '../database/sessions';
 import { addMessage } from '../database/messages';
 import { saveImageToFileSystem, saveAudioToFileSystem } from '../utils/fileSystem';
+import { useLanguage } from '../utils/i18n/LanguageContext';
 
 const LoadingScreen = () => {
   const router = useRouter();
@@ -14,12 +15,13 @@ const LoadingScreen = () => {
   const [blurAnim] = useState(new Animated.Value(100));
   const [opacityAnim] = useState(new Animated.Value(0));
   const [status, setStatus] = useState('Identifying artwork...');
+  const { language } = useLanguage();
 
   useEffect(() => {
     const processArtwork = async () => {
       try {
         setStatus('Identifying artwork...');
-        const artworkInfo = await identifyArtwork(imageUri);
+        const artworkInfo = await identifyArtwork(imageUri, language);
 
         setStatus('Saving image...');
         const savedImageUri = await saveImageToFileSystem(imageUri);
@@ -27,6 +29,7 @@ const LoadingScreen = () => {
         setStatus('Creating session...');
         const session = await addSession({
           artwork_id: artworkInfo.session_id,
+          session_id: artworkInfo.session_id
         });
 
         setStatus('Saving audio...');
@@ -42,7 +45,7 @@ const LoadingScreen = () => {
           audio_path: savedAudioUri || undefined
         });
         
-        setStatus('Saving to collection...');
+        setStatus('Saving to collections...');
         const collection = await addCollection({
           museum_name: artworkInfo.museum_name,
           title: artworkInfo.title,
@@ -52,13 +55,10 @@ const LoadingScreen = () => {
           session_id: artworkInfo.session_id
         });
 
-        // Navigate to result page after all data is saved
+        // Navigate directly to collection detail page
         router.push({
-          pathname: '/result',
-          params: { 
-            collectionId: collection.id,
-            sessionId: session.id
-          }
+          pathname: '/collection/[id]',
+          params: { id: collection.id }
         });
 
       } catch (error) {

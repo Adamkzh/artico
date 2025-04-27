@@ -7,7 +7,7 @@ export interface ArtworkInfo {
   session_id: string;
 }
 
-export const identifyArtwork = async (imageUri: string): Promise<ArtworkInfo> => {
+export const identifyArtwork = async (imageUri: string, language: string = 'en'): Promise<ArtworkInfo> => {
   // try {
   //   // Create FormData to send the image
   //   const formData = new FormData();
@@ -23,6 +23,7 @@ export const identifyArtwork = async (imageUri: string): Promise<ArtworkInfo> =>
   //     body: formData,
   //     headers: {
   //       'Content-Type': 'multipart/form-data',
+  //       'Accept-Language': language,
   //     },
   //   });
 
@@ -46,7 +47,7 @@ export const identifyArtwork = async (imageUri: string): Promise<ArtworkInfo> =>
   // }
 
   try {
-    console.log(`Mock identifyArtwork called with imageUri: ${imageUri}`);
+    console.log(`Mock identifyArtwork called with imageUri: ${imageUri}, language: ${language}`);
 
     // 假装等一会儿，模拟真实 API 延迟
     await new Promise(resolve => setTimeout(resolve, 500));

@@ -10,23 +10,22 @@ export interface Session {
   session_id?: string;
 }
 
-export const addSession = async (session: Omit<Session, 'id' | 'type' | 'created_at'>): Promise<Session> => {
-  const id = `session_${Date.now()}`;
+export const addSession = async (session: Omit<Session, 'id' | 'type' | 'created_at'> & { session_id: string }): Promise<Session> => {
   const created_at = Date.now();
   
   await db.runAsync(
     'INSERT INTO sessions (id, type, created_at, artwork_id, session_id) VALUES (?, ?, ?, ?, ?)',
     [
-      id,
+      session.session_id,
       'session',
       created_at,
       session.artwork_id,
-      session.session_id || null
+      session.session_id
     ]
   );
 
   return {
-    id,
+    id: session.session_id,
     type: 'session',
     ...session,
     created_at

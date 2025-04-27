@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Collection, getAllCollections } from '../database/collections';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
+import { useLanguage } from '../utils/i18n/LanguageContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COLUMN_GAP = 12;
@@ -12,6 +13,7 @@ const ITEM_WIDTH = (SCREEN_WIDTH - 40 - COLUMN_GAP) / NUM_COLUMNS; // 40 for pad
 
 const HomeScreen = () => {
   const router = useRouter();
+  const { t } = useLanguage();
   const [date, setDate] = useState('');
   const [greeting, setGreeting] = useState('');
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -30,11 +32,11 @@ const HomeScreen = () => {
 
       const hour = now.getHours();
       if (hour < 12) {
-        setGreeting('Good Morning');
+        setGreeting(t('goodMorning'));
       } else if (hour < 18) {
-        setGreeting('Good Afternoon');
+        setGreeting(t('goodAfternoon'));
       } else {
-        setGreeting('Good Evening');
+        setGreeting(t('goodEvening'));
       }
     };
 
@@ -50,7 +52,7 @@ const HomeScreen = () => {
     loadCollections();
 
     return () => clearInterval(interval);
-  }, []);
+  }, [t]);
 
   // Auto-refresh collections when focused
   useFocusEffect(
@@ -148,7 +150,7 @@ const HomeScreen = () => {
 
           {/* Collections Grid */}
           <View style={styles.collectionsSection}>
-            <Text style={styles.sectionTitle}>Your Collections</Text>
+            <Text style={styles.sectionTitle}>{t('collections')}</Text>
             {renderCollectionGrid()}
           </View>
         </ScrollView>

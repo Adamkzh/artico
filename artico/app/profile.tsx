@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from '../utils/i18n/LanguageContext';
+
+const languageOptions = [
+  { id: 'zh', name: 'Chinese', label: '中文', flag: '🇨🇳' },
+  { id: 'en', name: 'English', label: 'English', flag: '🇺🇸' },
+  { id: 'fr', name: 'French', label: 'Français', flag: '🇫🇷' },
+  { id: 'es', name: 'Spanish', label: 'Español', flag: '🇪🇸' },
+  { id: 'it', name: 'Italian', label: 'Italiano', flag: '🇮🇹' },
+  { id: 'de', name: 'German', label: 'Deutsch', flag: '🇩🇪' },
+];
 
 const ProfileScreen = () => {
   const router = useRouter();
-  const [selectedLanguage, setSelectedLanguage] = useState('English');
-
-  const languages = [
-    { id: 'en', name: 'English' },
-    { id: 'es', name: 'Spanish' },
-    { id: 'fr', name: 'French' },
-    { id: 'de', name: 'German' },
-    { id: 'it', name: 'Italian' },
-  ];
+  const { language, setLanguage, t } = useLanguage();
+  const [modalVisible, setModalVisible] = useState(false);
+  const [pendingLanguage, setPendingLanguage] = useState(language);
 
   return (
     <View style={styles.container}>
@@ -36,30 +40,43 @@ const ProfileScreen = () => {
 
         {/* Language Selection */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Language</Text>
-          <View style={styles.languageContainer}>
-            {languages.map((language) => (
+          <Text style={styles.sectionTitle}>{t('language')}</Text>
+          <TouchableOpacity style={styles.languageSelectButton} onPress={() => { setPendingLanguage(language); setModalVisible(true); }}>
+            <Text style={styles.languageSelectText}>
+              {languageOptions.find(l => l.id === language)?.flag} {languageOptions.find(l => l.id === language)?.label}
+            </Text>
+            <Ionicons name="chevron-up" size={20} color="#fff" style={{ marginLeft: 8 }} />
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {/* Language Modal */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setModalVisible(false)} />
+        <View style={styles.bottomSheet}>
+          <Text style={styles.sheetTitle}>{t('language')}</Text>
+          <View style={styles.languageGrid}>
+            {languageOptions.map((lang) => (
               <TouchableOpacity
-                key={language.id}
-                style={[
-                  styles.languageButton,
-                  selectedLanguage === language.name && styles.selectedLanguage,
-                ]}
-                onPress={() => setSelectedLanguage(language.name)}
+                key={lang.id}
+                style={[styles.languageCell, pendingLanguage === lang.id && styles.languageCellSelected]}
+                onPress={() => setPendingLanguage(lang.id as any)}
               >
-                <Text
-                  style={[
-                    styles.languageText,
-                    selectedLanguage === language.name && styles.selectedLanguageText,
-                  ]}
-                >
-                  {language.name}
-                </Text>
+                <Text style={styles.flag}>{lang.flag}</Text>
+                <Text style={styles.languageName}>{lang.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
+          <TouchableOpacity style={styles.doneButton} onPress={() => { if (pendingLanguage !== language) setLanguage(pendingLanguage as any); setModalVisible(false); }}>
+            <Text style={styles.doneButtonText}>Done</Text>
+          </TouchableOpacity>
         </View>
-      </ScrollView>
+      </Modal>
     </View>
   );
 };
@@ -106,26 +123,79 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 15,
   },
-  languageContainer: {
+  languageSelectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#222',
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginTop: 10,
+  },
+  languageSelectText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  bottomSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  sheetTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  languageGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    justifyContent: 'space-between',
+    marginBottom: 24,
   },
-  languageButton: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#333333',
+  languageCell: {
+    width: '30%',
+    alignItems: 'center',
+    paddingVertical: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    backgroundColor: '#f5f5f5',
   },
-  selectedLanguage: {
-    backgroundColor: '#FFFFFF',
+  languageCellSelected: {
+    borderWidth: 2,
+    borderColor: '#007AFF',
+    backgroundColor: '#e6f0ff',
   },
-  languageText: {
-    color: '#FFFFFF',
+  flag: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  languageName: {
     fontSize: 16,
+    fontWeight: '600',
+    color: '#222',
   },
-  selectedLanguageText: {
-    color: '#000000',
+  doneButton: {
+    backgroundColor: '#222',
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, SafeAreaView, Alert } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, SafeAreaView, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getCollection, deleteCollection } from '../../database/collections';
-import { Message, getMessagesBySession } from '../../database/messages';
+import { Message, getMessagesBySession, addMessage } from '../../database/messages';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import { BlurView } from 'expo-blur';
+import { generateResponse } from '../../services/chat';
+import { useLanguage } from '../../utils/i18n/LanguageContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const INFO_CARD_HEIGHT = SCREEN_HEIGHT * 0.7;
@@ -13,11 +15,14 @@ const INFO_CARD_HEIGHT = SCREEN_HEIGHT * 0.7;
 export default function CollectionDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { t } = useLanguage();
   const [collection, setCollection] = useState<any>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState<string | null>(null);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [inputText, setInputText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const loadCollection = async () => {
@@ -38,23 +43,26 @@ export default function CollectionDetail() {
     loadCollection();
 
     return () => {
+      // Cleanup audio when leaving the page
       if (sound) {
         sound.unloadAsync();
+        setSound(null);
+        setIsPlaying(null);
       }
     };
   }, [id]);
 
   const handleDelete = () => {
     Alert.alert(
-      "Delete Collection",
-      "Are you sure you want to delete this collection? This action cannot be undone.",
+      t('deleteCollection'),
+      t('deleteCollectionConfirm'),
       [
         {
-          text: "Cancel",
+          text: t('cancel'),
           style: "cancel"
         },
         {
-          text: "Delete",
+          text: t('delete'),
           style: "destructive",
           onPress: async () => {
             if (typeof id === 'string') {
@@ -69,22 +77,20 @@ export default function CollectionDetail() {
 
   const handlePlayPause = async (messageId: string, audioPath: string) => {
     try {
+      // If there's a currently playing sound, stop it first
       if (sound) {
-        if (isPlaying === messageId) {
-          const status = await sound.getStatusAsync();
-          if ('isPlaying' in status && status.isPlaying) {
-            await sound.pauseAsync();
-            setIsPlaying(null);
-          } else {
-            await sound.playAsync();
-            setIsPlaying(messageId);
-          }
-          return;
-        } else {
-          await sound.unloadAsync();
-        }
+        await sound.stopAsync();
+        await sound.unloadAsync();
+        setSound(null);
+        setIsPlaying(null);
       }
 
+      // If clicking the same message that's already playing, just stop it
+      if (isPlaying === messageId) {
+        return;
+      }
+
+      // Create and play new sound
       const { sound: newSound } = await Audio.Sound.createAsync(
         { uri: audioPath },
         { shouldPlay: true }
@@ -93,6 +99,7 @@ export default function CollectionDetail() {
       newSound.setOnPlaybackStatusUpdate((status) => {
         if ('didJustFinish' in status && status.didJustFinish) {
           setIsPlaying(null);
+          setSound(null);
         }
       });
 
@@ -100,13 +107,45 @@ export default function CollectionDetail() {
       setIsPlaying(messageId);
     } catch (error) {
       console.error('Error handling audio:', error);
+      Alert.alert('Error', 'Failed to play audio. Please try again.');
+    }
+  };
+
+  const handleSend = async () => {
+    if (!inputText.trim() || !collection) return;
+
+    setIsLoading(true);
+    try {
+      // Add user message
+      const userMessage = await addMessage({
+        session_id: collection.session_id,
+        role: 'user',
+        text: inputText.trim()
+      });
+      setMessages(prev => [...prev, userMessage]);
+      setInputText('');
+
+      // Generate and add assistant response
+      const response = await generateResponse(collection.session_id, inputText.trim());
+      const assistantMessage = await addMessage({
+        session_id: collection.session_id,
+        role: 'assistant',
+        text: response.text,
+        audio_path: response.audio_url
+      });
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      Alert.alert('Error', 'Failed to send message. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   if (!collection) {
     return (
       <View style={styles.container}>
-        <Text style={styles.loadingText}>Loading...</Text>
+        <Text style={styles.loadingText}>{t('loading')}</Text>
       </View>
     );
   }
@@ -124,8 +163,11 @@ export default function CollectionDetail() {
             <TouchableOpacity style={styles.iconButton} onPress={handleDelete}>
               <Ionicons name="trash-outline" size={24} color="#FFFFFF" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
-              <Ionicons name="scan-outline" size={24} color="#FFFFFF" />
+            <TouchableOpacity 
+              style={styles.iconButton}
+              onPress={() => router.push('/')}
+            >
+              <Ionicons name="home-outline" size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         </View>
@@ -156,36 +198,64 @@ export default function CollectionDetail() {
         </View>
 
         {/* Messages Section */}
-        <ScrollView
-          style={[styles.scrollSection, { backgroundColor: '#000' }]}
-          contentContainerStyle={{ paddingBottom: 40 }}
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
         >
-          <View style={styles.messagesSection}>
-            {messages.map((message) => (
-              <View key={message.id} style={styles.messageContainer}>
-                <Text style={styles.messageRole}>
-                  {message.role === 'user' ? 'You' : 'Assistant'}
-                </Text>
-                <Text style={styles.messageContent}>{message.text}</Text>
-                {message.audio_path && (
-                  <TouchableOpacity
-                    style={[
-                      styles.audioButton,
-                      isPlaying === message.id && styles.audioButtonPlaying
-                    ]}
-                    onPress={() => handlePlayPause(message.id, message.audio_path!)}
-                  >
-                    <Ionicons 
-                      name={isPlaying === message.id ? "pause" : "play"} 
-                      size={24} 
-                      color="#FFFFFF" 
-                    />
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))}
+          <ScrollView
+            style={[styles.scrollSection, { backgroundColor: '#000' }]}
+            contentContainerStyle={{ paddingBottom: 40 }}
+          >
+            <View style={styles.messagesSection}>
+              {messages.map((message) => (
+                <View key={message.id} style={styles.messageContainer}>
+                  <Text style={styles.messageRole}>
+                    {message.role === 'user' ? t('you') : t('assistant')}
+                  </Text>
+                  <Text style={styles.messageContent}>{message.text}</Text>
+                  {message.audio_path && (
+                    <TouchableOpacity
+                      style={[
+                        styles.audioButton,
+                        isPlaying === message.id && styles.audioButtonPlaying
+                      ]}
+                      onPress={() => handlePlayPause(message.id, message.audio_path!)}
+                    >
+                      <Ionicons 
+                        name={isPlaying === message.id ? "pause" : "play"} 
+                        size={24} 
+                        color="#FFFFFF" 
+                      />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+
+          {/* Input Section */}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder={t('askAboutArtwork')}
+              placeholderTextColor="#666"
+              multiline
+            />
+            <TouchableOpacity 
+              style={[styles.sendButton, (!inputText.trim() || isLoading) && styles.sendButtonDisabled]}
+              onPress={handleSend}
+              disabled={!inputText.trim() || isLoading}
+            >
+              <Ionicons 
+                name="send" 
+                size={24} 
+                color={!inputText.trim() || isLoading ? "#666" : "#FFFFFF"} 
+              />
+            </TouchableOpacity>
           </View>
-        </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </>
   );
@@ -304,5 +374,34 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 8,
     marginTop: 4,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  input: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    color: '#FFFFFF',
+    maxHeight: 100,
+  },
+  sendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  sendButtonDisabled: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
 }); 

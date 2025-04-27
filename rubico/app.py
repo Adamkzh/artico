@@ -22,7 +22,7 @@ async def upload_image(image: UploadFile = File(...)):
     session_id = str(uuid.uuid4())
 
     # 1. Generate initial structured data (parsed JSON)
-    parsed_artworks_info = generate_initial_description(image_bytes)
+    parsed_artworks_info = generate_initial_description(image_bytes = image_bytes)
 
     # If parsed_json is still a JSON string, you need to parse it first
     if isinstance(parsed_artworks_info, str):
