@@ -6,6 +6,7 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { initDatabase } from '../database';
 import { LanguageProvider } from '../utils/i18n/LanguageContext';
+import { RoleProvider } from '../utils/i18n/RoleContext';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -48,7 +49,9 @@ export default function RootLayout() {
 
   return (
     <LanguageProvider>
-      <RootLayoutNav />
+      <RoleProvider>
+        <RootLayoutNav />
+      </RoleProvider>
     </LanguageProvider>
   );
 }

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, Header
 from fastapi.responses import JSONResponse
 import uuid
 import os
@@ -16,13 +16,17 @@ UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @app.post("/api/recognize")
-async def upload_image(image: UploadFile = File(...)):
+async def upload_image(
+    image: UploadFile = File(...),
+    language: str = Form(default="en"),
+    role: str = Form(default="adult"),
+):
     image_bytes = await image.read()
 
     session_id = str(uuid.uuid4())
 
     # 1. Generate initial structured data (parsed JSON)
-    parsed_artworks_info = generate_initial_description(image_bytes = image_bytes)
+    parsed_artworks_info = generate_initial_description(image_bytes=image_bytes, language=language, role=role)
 
     # If parsed_json is still a JSON string, you need to parse it first
     if isinstance(parsed_artworks_info, str):

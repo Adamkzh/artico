@@ -2,16 +2,16 @@ from deep_translator import GoogleTranslator
 from enum import Enum
 
 class Language(Enum):
-    ZH = ('chinese (simplified)', 'Chinese')
-    ES = ('spanish', 'Spanish')
-    EN = ('english', 'English')
-    FR = ('french', 'French')
-    DE = ('german', 'German')
-    JA = ('japanese', 'Japanese')
-    KO = ('korean', 'Korean')
-    RU = ('russian', 'Russian')
-    PT = ('portuguese', 'Portuguese')
-    IT = ('italian', 'Italian')
+    ZH = ('zh', 'Chinese')
+    ES = ('es', 'Spanish')
+    EN = ('en', 'English')
+    FR = ('fr', 'French')
+    DE = ('de', 'German')
+    JA = ('ja', 'Japanese')
+    KO = ('ko', 'Korean')
+    RU = ('ru', 'Russian')
+    PT = ('pt', 'Portuguese')
+    IT = ('it', 'Italian')
 
     def __init__(self, code, description):
         self.code = code
@@ -23,13 +23,6 @@ class Language(Enum):
             if lang.code == code:
                 return lang
         raise ValueError(f"Unknown language code: {code}")
-
-    @classmethod
-    def from_description(cls, description: str) -> 'Language':
-        for lang in cls:
-            if lang.description.lower() == description.lower():
-                return lang
-        raise ValueError(f"Unknown language description: {description}")
 
     @staticmethod
     def translate_to_language(text: str, target_language: 'Language') -> str:

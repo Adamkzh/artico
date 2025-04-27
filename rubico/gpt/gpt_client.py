@@ -7,18 +7,18 @@ from model.ArtworkMetadata import ArtworkMetadata
 client = OpenAI()
 
  
-def generate_initial_description(image_bytes, language_description="English", role="adult"):
+def generate_initial_description(image_bytes, language="en", role="adult"):
     """
     Generate the initial spoken description for an artwork based on the uploaded image.
     
     :param image_bytes: The image content in bytes.
-    :param language_description: Target language for explanation (default: English).
+    :param language: Target language for explanation (default: en).
     :param role: User type (child, adult, senior, expert).
     :return: (session_id, messages, reply_text)
     """
 
     base64_image = base64.b64encode(image_bytes).decode('utf-8')
-    prompt_generator = PromptGenerator(language_description=language_description, role=role)
+    prompt_generator = PromptGenerator(language=language, role=role)
     
     messages = [
         {"role": "system", "content": prompt_generator.generate_role()},

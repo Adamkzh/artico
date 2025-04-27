@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Pressable 
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '../utils/i18n/LanguageContext';
+import { useRole } from '../utils/i18n/RoleContext';
 
 const languageOptions = [
   { id: 'zh', name: 'Chinese', label: '中文', flag: '🇨🇳' },
@@ -13,11 +14,36 @@ const languageOptions = [
   { id: 'de', name: 'German', label: 'Deutsch', flag: '🇩🇪' },
 ];
 
+const roleOptions = [
+  { id: 'child', icon: '👶' },
+  { id: 'adult', icon: '👨' },
+  { id: 'senior', icon: '👴' },
+  { id: 'expert', icon: '👨‍🎓' },
+];
+
 const ProfileScreen = () => {
   const router = useRouter();
   const { language, setLanguage, t } = useLanguage();
-  const [modalVisible, setModalVisible] = useState(false);
+  const { role, setRole } = useRole();
+  const [languageModalVisible, setLanguageModalVisible] = useState(false);
+  const [roleModalVisible, setRoleModalVisible] = useState(false);
   const [pendingLanguage, setPendingLanguage] = useState(language);
+  const [pendingRole, setPendingRole] = useState(role);
+
+  const getRoleLabel = (roleId: string) => {
+    switch (roleId) {
+      case 'child':
+        return t('roleChild');
+      case 'adult':
+        return t('roleAdult');
+      case 'senior':
+        return t('roleSenior');
+      case 'expert':
+        return t('roleExpert');
+      default:
+        return '';
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -38,10 +64,21 @@ const ProfileScreen = () => {
           </View>
         </View>
 
+        {/* Role Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('role')}</Text>
+          <TouchableOpacity style={styles.languageSelectButton} onPress={() => { setPendingRole(role); setRoleModalVisible(true); }}>
+            <Text style={styles.languageSelectText}>
+              {roleOptions.find(r => r.id === role)?.icon} {getRoleLabel(role)}
+            </Text>
+            <Ionicons name="chevron-up" size={20} color="#fff" style={{ marginLeft: 8 }} />
+          </TouchableOpacity>
+        </View>
+
         {/* Language Selection */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('language')}</Text>
-          <TouchableOpacity style={styles.languageSelectButton} onPress={() => { setPendingLanguage(language); setModalVisible(true); }}>
+          <TouchableOpacity style={styles.languageSelectButton} onPress={() => { setPendingLanguage(language); setLanguageModalVisible(true); }}>
             <Text style={styles.languageSelectText}>
               {languageOptions.find(l => l.id === language)?.flag} {languageOptions.find(l => l.id === language)?.label}
             </Text>
@@ -52,12 +89,12 @@ const ProfileScreen = () => {
 
       {/* Language Modal */}
       <Modal
-        visible={modalVisible}
+        visible={languageModalVisible}
         animationType="slide"
         transparent
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={() => setLanguageModalVisible(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setModalVisible(false)} />
+        <Pressable style={styles.modalOverlay} onPress={() => setLanguageModalVisible(false)} />
         <View style={styles.bottomSheet}>
           <Text style={styles.sheetTitle}>{t('language')}</Text>
           <View style={styles.languageGrid}>
@@ -72,7 +109,35 @@ const ProfileScreen = () => {
               </TouchableOpacity>
             ))}
           </View>
-          <TouchableOpacity style={styles.doneButton} onPress={() => { if (pendingLanguage !== language) setLanguage(pendingLanguage as any); setModalVisible(false); }}>
+          <TouchableOpacity style={styles.doneButton} onPress={() => { if (pendingLanguage !== language) setLanguage(pendingLanguage as any); setLanguageModalVisible(false); }}>
+            <Text style={styles.doneButtonText}>Done</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      {/* Role Modal */}
+      <Modal
+        visible={roleModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setRoleModalVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setRoleModalVisible(false)} />
+        <View style={styles.bottomSheet}>
+          <Text style={styles.sheetTitle}>{t('role')}</Text>
+          <View style={styles.languageGrid}>
+            {roleOptions.map((role) => (
+              <TouchableOpacity
+                key={role.id}
+                style={[styles.languageCell, pendingRole === role.id && styles.languageCellSelected]}
+                onPress={() => setPendingRole(role.id)}
+              >
+                <Text style={styles.flag}>{role.icon}</Text>
+                <Text style={styles.languageName}>{getRoleLabel(role.id)}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TouchableOpacity style={styles.doneButton} onPress={() => { if (pendingRole !== role) setRole(pendingRole as any); setRoleModalVisible(false); }}>
             <Text style={styles.doneButtonText}>Done</Text>
           </TouchableOpacity>
         </View>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, Animated } from 'react-native';
+import { View, Text, StyleSheet, Image, Animated, TouchableOpacity } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { identifyArtwork } from '../services/artwork';
@@ -8,6 +8,9 @@ import { addSession } from '../database/sessions';
 import { addMessage } from '../database/messages';
 import { saveImageToFileSystem, saveAudioToFileSystem } from '../utils/fileSystem';
 import { useLanguage } from '../utils/i18n/LanguageContext';
+import { useRole } from '../utils/i18n/RoleContext';
+import { Ionicons } from '@expo/vector-icons';
+
 
 const LoadingScreen = () => {
   const router = useRouter();
@@ -16,12 +19,13 @@ const LoadingScreen = () => {
   const [opacityAnim] = useState(new Animated.Value(0));
   const [status, setStatus] = useState('Identifying artwork...');
   const { language } = useLanguage();
+  const { role } = useRole();
 
   useEffect(() => {
     const processArtwork = async () => {
       try {
         setStatus('Identifying artwork...');
-        const artworkInfo = await identifyArtwork(imageUri, language);
+        const artworkInfo = await identifyArtwork(imageUri, language, role);
 
         setStatus('Saving image...');
         const savedImageUri = await saveImageToFileSystem(imageUri);
@@ -89,6 +93,9 @@ const LoadingScreen = () => {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <Ionicons name="arrow-back" size={28} color="#fff" />
+      </TouchableOpacity>
       <LinearGradient
         colors={['#000000', '#1A1A1A']}
         style={styles.gradient}
@@ -119,6 +126,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    zIndex: 10,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   gradient: {
     flex: 1,

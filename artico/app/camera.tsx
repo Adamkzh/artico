@@ -1,34 +1,35 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Image } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useLanguage } from '../utils/i18n/LanguageContext';
 
 const { width } = Dimensions.get('window');
-const FRAME_SIZE = width * 0.8;
+const FRAME_SIZE = width * 0.5;
 
 const CameraScreen = () => {
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const [type, setType] = useState<CameraType>('back');
   const cameraRef = useRef<CameraView>(null);
+  const { t } = useLanguage();
 
-  React.useEffect(() => {
-    if (!permission?.granted) {
-      requestPermission();
-    }
-  }, [permission]);
+  // 日期
+  const [dateStr, setDateStr] = useState('');
+  useEffect(() => {
+    const d = new Date();
+    setDateStr(d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }));
+  }, []);
 
+  // 拍照
   const handleCapture = async () => {
     if (cameraRef.current) {
       try {
         const photo = await cameraRef.current.takePictureAsync();
         if (photo?.uri) {
-          router.push({
-            pathname: '/loading',
-            params: { imageUri: photo.uri }
-          });
+          router.push({ pathname: '/loading', params: { imageUri: photo.uri } });
         }
       } catch (error) {
         console.error('Error taking picture:', error);
@@ -36,6 +37,7 @@ const CameraScreen = () => {
     }
   };
 
+  // 选图库
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: 'images',
@@ -43,25 +45,18 @@ const CameraScreen = () => {
       aspect: [4, 3],
       quality: 1,
     });
-
     if (!result.canceled) {
-      router.push({
-        pathname: '/loading',
-        params: { imageUri: result.assets[0].uri }
-      });
+      router.push({ pathname: '/loading', params: { imageUri: result.assets[0].uri } });
     }
   };
 
-  if (!permission) {
-    return <View />;
-  }
-
+  if (!permission) return <View />;
   if (!permission.granted) {
     return (
       <View style={styles.container}>
-        <Text style={styles.message}>We need your permission to show the camera</Text>
+        <Text style={styles.message}>{t('cameraPermission') || 'We need your permission to show the camera'}</Text>
         <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-          <Text style={styles.permissionButtonText}>Grant Permission</Text>
+          <Text style={styles.permissionButtonText}>{t('grantPermission') || 'Grant Permission'}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -69,118 +64,68 @@ const CameraScreen = () => {
 
   return (
     <View style={styles.container}>
-      <CameraView
-        style={styles.camera}
-        facing={type}
-        ref={cameraRef}
-      >
+      {/* 顶部日期和提示 */}
+      <View style={styles.topBar}>
+        <Text style={styles.dateText}>{dateStr}</Text>
+        <Text style={styles.tipText}>{t('cameraTip')}</Text>
+      </View>
+
+      {/* 相机和取景框 */}
+      <CameraView style={styles.camera} facing={type} ref={cameraRef}>
         <View style={styles.frameContainer}>
           <View style={styles.frame} />
         </View>
-
-        <View style={styles.controls}>
-          <TouchableOpacity
-            style={styles.galleryButton}
-            onPress={pickImage}
-          >
-            <Ionicons name="images" size={30} color="#FFFFFF" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.captureButton}
-            onPress={handleCapture}
-          >
-            <View style={styles.captureButtonInner} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.flipButton}
-            onPress={() => {
-              setType(current => current === 'back' ? 'front' : 'back');
-            }}
-          >
-            <Ionicons name="camera-reverse" size={30} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
       </CameraView>
+
+      {/* 底部半圆白色区域，含回退、快门、图库按钮 */}
+      <View style={styles.bottomPanel}>
+        {/* 返回按钮 */}
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={28} color="#888" />
+        </TouchableOpacity>
+        {/* 快门按钮 */}
+        <TouchableOpacity style={styles.captureButton} onPress={handleCapture}>
+          <View style={styles.captureButtonInner} />
+        </TouchableOpacity>
+        {/* 图库按钮 */}
+        <TouchableOpacity style={styles.galleryButton} onPress={pickImage}>
+          <Ionicons name="images" size={28} color="#888" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000000',
+  container: { flex: 1, backgroundColor: '#000' },
+  topBar: { position: 'absolute', top: 60, left: 0, right: 0, alignItems: 'flex-start', zIndex: 10, paddingLeft: 24 },
+  dateText: { color: '#fff', fontSize: 32, fontWeight: '600', marginBottom: 2 },
+  tipText: { color: '#fff', fontSize: 16, marginBottom: 8 },
+  camera: { flex: 1 },
+  frameContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  frame: { width: FRAME_SIZE, height: FRAME_SIZE, borderWidth: 3, borderColor: '#fff', borderRadius: 16, backgroundColor: 'transparent' },
+  bottomPanel: {
+    position: 'absolute', left: 0, right: 0, bottom: 0, height: 160,
+    backgroundColor: '#fafafa', borderTopLeftRadius: 32, borderTopRightRadius: 32,
+    alignItems: 'center', justifyContent: 'center', paddingBottom: 24,
+    shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { height: -2, width: 0 },
+    flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 40,
   },
-  camera: {
-    flex: 1,
-  },
-  frameContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  frame: {
-    width: FRAME_SIZE,
-    height: FRAME_SIZE,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    backgroundColor: 'transparent',
-  },
-  controls: {
-    position: 'absolute',
-    bottom: 40,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  galleryButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  backButton: {
+    width: 48, height: 48, borderRadius: 24, backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, zIndex: 2,
   },
   captureButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 80, height: 80, borderRadius: 40, backgroundColor: '#fff', borderWidth: 4, borderColor: '#e0e0e0', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8,
   },
   captureButtonInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#FFFFFF',
+    width: 68, height: 68, borderRadius: 34, backgroundColor: '#fff', borderWidth: 4, borderColor: '#e0e0e0', borderStyle: 'dashed',
   },
-  flipButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  galleryButton: {
+    width: 48, height: 48, borderRadius: 24, backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6,
   },
-  message: {
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  permissionButton: {
-    backgroundColor: '#FFFFFF',
-    padding: 15,
-    borderRadius: 8,
-  },
-  permissionButtonText: {
-    color: '#000000',
-    fontWeight: 'bold',
-  },
+  message: { color: '#fff', textAlign: 'center', marginBottom: 20 },
+  permissionButton: { backgroundColor: '#fff', padding: 15, borderRadius: 8 },
+  permissionButtonText: { color: '#000', fontWeight: 'bold' },
 });
 
 export default CameraScreen; 

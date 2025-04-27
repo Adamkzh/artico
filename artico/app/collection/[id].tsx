@@ -27,14 +27,10 @@ export default function CollectionDetail() {
   useEffect(() => {
     const loadCollection = async () => {
       if (typeof id === 'string') {
-        console.log('Loading collection with id:', id);
         const collectionData = await getCollection(id);
-        console.log('Collection data:', collectionData);
         if (collectionData) {
           setCollection(collectionData);
-          console.log('Loading messages for session_id:', collectionData.session_id);
           const messagesData = await getMessagesBySession(collectionData.session_id);
-          console.log('Messages data:', messagesData);
           setMessages(messagesData);
         }
       }

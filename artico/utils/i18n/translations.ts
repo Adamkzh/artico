@@ -28,6 +28,11 @@ export const translations = {
     language: 'Language',
     settings: 'Settings',
     profile: 'Profile',
+    role: 'Role',
+    roleChild: 'Child',
+    roleAdult: 'Adult',
+    roleSenior: 'Senior',
+    roleExpert: 'Expert',
   },
   zh: {
     // Common
@@ -58,6 +63,11 @@ export const translations = {
     language: '语言',
     settings: '设置',
     profile: '个人资料',
+    role: '角色',
+    roleChild: '儿童',
+    roleAdult: '成人',
+    roleSenior: '长者',
+    roleExpert: '专家',
   },
   fr: {
     // Common
@@ -88,6 +98,11 @@ export const translations = {
     language: 'Langue',
     settings: 'Paramètres',
     profile: 'Profil',
+    role: 'Rôle',
+    roleChild: 'Enfant',
+    roleAdult: 'Adulte',
+    roleSenior: 'Senior',
+    roleExpert: 'Expert',
   },
   it: {
     // Common
@@ -118,6 +133,11 @@ export const translations = {
     language: 'Lingua',
     settings: 'Impostazioni',
     profile: 'Profilo',
+    role: 'Ruolo',
+    roleChild: 'Bambino',
+    roleAdult: 'Adulto',
+    roleSenior: 'Anziano',
+    roleExpert: 'Esperto',
   },
   es: {
     // Common
@@ -148,6 +168,11 @@ export const translations = {
     language: 'Idioma',
     settings: 'Ajustes',
     profile: 'Perfil',
+    role: 'Rol',
+    roleChild: 'Niño',
+    roleAdult: 'Adulto',
+    roleSenior: 'Mayor',
+    roleExpert: 'Experto',
   },
   de: {
     // Common
@@ -178,5 +203,10 @@ export const translations = {
     language: 'Sprache',
     settings: 'Einstellungen',
     profile: 'Profil',
+    role: 'Rolle',
+    roleChild: 'Kind',
+    roleAdult: 'Erwachsener',
+    roleSenior: 'Senior',
+    roleExpert: 'Experte',
   },
 }; 
