@@ -66,7 +66,7 @@ function RootLayoutNav() {
         <Stack.Screen name="camera" options={{ headerShown: false }} />
         <Stack.Screen name="loading" options={{ headerShown: false }} />
         <Stack.Screen name="profile" options={{ headerShown: false }} />
-        <Stack.Screen name="collection/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="artwork/[id]" options={{ headerShown: false }} />
       </Stack>
     </ThemeProvider>
   );

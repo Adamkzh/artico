@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Dimensions, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Collection, getAllCollections } from '../database/collections';
+import { getAllArtworks } from '../database/artworks';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { useLanguage } from '../utils/i18n/LanguageContext';
 
@@ -16,7 +16,7 @@ const HomeScreen = () => {
   const { t } = useLanguage();
   const [date, setDate] = useState('');
   const [greeting, setGreeting] = useState('');
-  const [collections, setCollections] = useState<Collection[]>([]);
+  const [artworks, setArtworks] = useState<any[]>([]);
   const isFocused = useIsFocused();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -43,60 +43,60 @@ const HomeScreen = () => {
     updateDateTime();
     const interval = setInterval(updateDateTime, 60000);
 
-    // Load collections
-    const loadCollections = async () => {
-      const collectionsData = await getAllCollections();
-      setCollections(collectionsData);
+    // Load artworks
+    const loadArtworks = async () => {
+      const artworksData = await getAllArtworks();
+      setArtworks(artworksData);
     };
 
-    loadCollections();
+    loadArtworks();
 
     return () => clearInterval(interval);
   }, [t]);
 
-  // Auto-refresh collections when focused
+  // Auto-refresh artworks when focused
   useFocusEffect(
     React.useCallback(() => {
-      const loadCollections = async () => {
-        const collectionsData = await getAllCollections();
-        setCollections(collectionsData);
+      const loadArtworks = async () => {
+        const artworksData = await getAllArtworks();
+        setArtworks(artworksData);
       };
-      loadCollections();
+      loadArtworks();
     }, [])
   );
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    const collectionsData = await getAllCollections();
-    setCollections(collectionsData);
+    const artworksData = await getAllArtworks();
+    setArtworks(artworksData);
     setRefreshing(false);
   }, []);
 
-  const renderCollectionGrid = () => {
+  const renderArtworkGrid = () => {
     const rows = [];
-    for (let i = 0; i < collections.length; i += NUM_COLUMNS) {
-      const row = collections.slice(i, i + NUM_COLUMNS);
+    for (let i = 0; i < artworks.length; i += NUM_COLUMNS) {
+      const row = artworks.slice(i, i + NUM_COLUMNS);
       rows.push(
         <View key={i} style={styles.row}>
-          {row.map((collection, index) => (
+          {row.map((artwork, index) => (
             <TouchableOpacity
-              key={collection.id}
-              style={styles.collectionItem}
-              onPress={() => router.push(`/collection/${collection.id}`)}
+              key={artwork.id}
+              style={styles.artworkItem}
+              onPress={() => router.push(`/artwork/${artwork.id}`)}
             >
-              {collection.image_uri && (
+              {artwork.image_uri && (
                 <Image
-                  source={{ uri: collection.image_uri }}
-                  style={styles.collectionImage}
+                  source={{ uri: artwork.image_uri }}
+                  style={styles.artworkImage}
                   resizeMode="cover"
                 />
               )}
-              <View style={styles.collectionInfo}>
-                <Text style={styles.collectionTitle} numberOfLines={1}>
-                  {collection.title}
+              <View style={styles.artworkInfo}>
+                <Text style={styles.artworkTitle} numberOfLines={1}>
+                  {artwork.title}
                 </Text>
-                <Text style={styles.collectionMuseum} numberOfLines={1}>
-                  {collection.museum_name}
+                <Text style={styles.artworkMuseum} numberOfLines={1}>
+                  {artwork.museum_name}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -106,7 +106,7 @@ const HomeScreen = () => {
             Array(NUM_COLUMNS - row.length)
               .fill(null)
               .map((_, index) => (
-                <View key={`empty-${index}`} style={[styles.collectionItem, styles.emptyItem]} />
+                <View key={`empty-${index}`} style={[styles.artworkItem, styles.emptyItem]} />
               ))}
         </View>
       );
@@ -148,10 +148,10 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Collections Grid */}
-          <View style={styles.collectionsSection}>
-            <Text style={styles.sectionTitle}>{t('collections')}</Text>
-            {renderCollectionGrid()}
+          {/* Artworks Grid */}
+          <View style={styles.artworksSection}>
+            <Text style={styles.sectionTitle}>{t('artworks')}</Text>
+            {renderArtworkGrid()}
           </View>
         </ScrollView>
       )}
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  collectionsSection: {
+  artworksSection: {
     padding: 20,
   },
   sectionTitle: {
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: COLUMN_GAP,
   },
-  collectionItem: {
+  artworkItem: {
     width: ITEM_WIDTH,
     backgroundColor: '#1A1A1A',
     borderRadius: 16,
@@ -225,20 +225,20 @@ const styles = StyleSheet.create({
   emptyItem: {
     backgroundColor: 'transparent',
   },
-  collectionImage: {
+  artworkImage: {
     width: '100%',
     height: ITEM_WIDTH * 1.2,
   },
-  collectionInfo: {
+  artworkInfo: {
     padding: 12,
   },
-  collectionTitle: {
+  artworkTitle: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
   },
-  collectionMuseum: {
+  artworkMuseum: {
     color: '#FFFFFF',
     fontSize: 14,
     opacity: 0.7,

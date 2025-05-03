@@ -40,7 +40,6 @@ export const getSession = async (sessionId: string): Promise<Session | null> => 
   return result || null;
 };
 
-
 export const getSessionsByArtwork = async (artworkId: string): Promise<Session[]> => {
   const results = await db.getAllAsync<Session>(
     'SELECT * FROM sessions WHERE artwork_id = ? ORDER BY created_at DESC',

@@ -18,7 +18,7 @@ export const initDatabase = async () => {
     // Create tables if they don't exist
     console.log('Creating tables if they don\'t exist...');
     await db.runAsync(
-      'CREATE TABLE IF NOT EXISTS collections (id TEXT PRIMARY KEY, type TEXT, museum_name TEXT, museum_location TEXT, title TEXT, artist TEXT, image_uri TEXT, description TEXT, created_at INTEGER, session_id TEXT)'
+      'CREATE TABLE IF NOT EXISTS artworks (id TEXT PRIMARY KEY, type TEXT, museum_name TEXT, museum_location TEXT, title TEXT, artist TEXT, image_uri TEXT, description TEXT, created_at INTEGER, session_id TEXT)'
     );
     await db.runAsync(
       'CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, type TEXT, created_at INTEGER, artwork_id TEXT, artwork_description TEXT, session_id TEXT)'

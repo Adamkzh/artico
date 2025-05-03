@@ -1,4 +1,4 @@
-export * from './database';
-export * from './collections';
+export * from './artworks';
 export * from './sessions';
-export * from './messages'; 
+export * from './messages';
+export { initDatabase } from './database'; 

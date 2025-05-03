@@ -3,9 +3,7 @@ import { View, Text, StyleSheet, Image, Animated, TouchableOpacity } from 'react
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { identifyArtwork } from '../services/artwork';
-import { addCollection } from '../database/collections';
-import { addSession } from '../database/sessions';
-import { addMessage } from '../database/messages';
+import { addArtwork } from '../database/artworks';
 import { saveImageToFileSystem } from '../utils/fileSystem';
 import { useLanguage } from '../utils/i18n/LanguageContext';
 import { useRole } from '../utils/i18n/RoleContext';
@@ -28,22 +26,9 @@ const LoadingScreen = () => {
 
         setStatus('Saving image...');
         const savedImageUri = await saveImageToFileSystem(imageUri);
-
-        setStatus('Creating session...');
-        const session = await addSession({
-          artwork_id: artworkInfo.session_id,
-          session_id: artworkInfo.session_id
-        });
-
-        setStatus('Initializing conversation...');
-        await addMessage({
-          session_id: session.id,
-          role: 'assistant',
-          text: artworkInfo.description
-        });
         
-        setStatus('Saving to collections...');
-        const collection = await addCollection({
+        setStatus('Saving artwork...');
+        const artwork = await addArtwork({
           museum_name: artworkInfo.museum_name,
           title: artworkInfo.title,
           artist: artworkInfo.artist,
@@ -52,10 +37,10 @@ const LoadingScreen = () => {
           session_id: artworkInfo.session_id
         });
 
-        // Navigate to collection detail page
+        // Navigate to artwork detail page
         router.push({
-          pathname: '/collection/[id]',
-          params: { id: collection.id }
+          pathname: '/artwork/[id]',
+          params: { id: artwork.id, from: 'loading' }
         });
 
       } catch (error) {
