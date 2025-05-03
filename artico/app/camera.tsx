@@ -63,22 +63,20 @@ const CameraScreen = () => {
   }
 
   return (
-    <View style={styles.container}>
-      {/* 顶部日期和提示 */}
-      <View style={styles.topBar}>
+    <View style={{ flex: 1 }}>
+      {/* Camera Preview */}
+      <CameraView style={StyleSheet.absoluteFill} facing={type} ref={cameraRef} />
+      {/* Overlay: 顶部日期和提示 */}
+      <View style={styles.topBar} pointerEvents="box-none">
         <Text style={styles.dateText}>{dateStr}</Text>
         <Text style={styles.tipText}>{t('cameraTip')}</Text>
       </View>
-
-      {/* 相机和取景框 */}
-      <CameraView style={styles.camera} facing={type} ref={cameraRef}>
-        <View style={styles.frameContainer}>
-          <View style={styles.frame} />
-        </View>
-      </CameraView>
-
-      {/* 底部半圆白色区域，含回退、快门、图库按钮 */}
-      <View style={styles.bottomPanel}>
+      {/* Overlay: 取景框 */}
+      <View style={styles.frameContainer} pointerEvents="box-none">
+        <View style={styles.frame} />
+      </View>
+      {/* Overlay: 底部半圆白色区域，含回退、快门、图库按钮 */}
+      <View style={styles.bottomPanel} pointerEvents="box-none">
         {/* 返回按钮 */}
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={28} color="#888" />

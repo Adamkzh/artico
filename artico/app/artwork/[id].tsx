@@ -217,6 +217,10 @@ export default function ArtworkDetail() {
                     resizeMode="cover"
                     onLoadStart={() => setIsImageLoaded(false)}
                     onLoadEnd={() => setIsImageLoaded(true)}
+                    onError={() => {
+                      console.warn('Image failed to load.');
+                      setIsImageLoaded(true);
+                    }}
                   />
                   {!isImageLoaded && (
                     <View style={styles.imageLoadingContainer}>
