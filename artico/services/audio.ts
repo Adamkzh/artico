@@ -1,5 +1,6 @@
 import { saveAudioToFileSystem } from '../utils/fileSystem';
 import { addMessage } from '../database/messages';
+import { getDevHost } from '../utils/getDevHost';
 
 interface PollAudioOptions {
   sessionId: string;
@@ -20,7 +21,8 @@ export const pollAudioUrl = ({
   
   const poll = async () => {
     try {
-      const response = await fetch(`http://192.168.1.6:8000/api/audio_url?session_id=${sessionId}`);
+      const host = getDevHost();
+      const response = await fetch(`http://${host}:8000/api/audio_url?session_id=${sessionId}`);
       const data = await response.json();
       
       if (data.audio_url) {

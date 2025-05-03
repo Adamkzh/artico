@@ -31,7 +31,7 @@ def generate_initial_description(image_bytes, language="en", role="adult"):
     ]
 
     completion = client.beta.chat.completions.parse(
-        model="gpt-4o",
+        model="gpt-4.1-nano",
         messages=messages,
         max_tokens=600,
         response_format=ArtworkMetadata,
