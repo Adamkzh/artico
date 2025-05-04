@@ -7,10 +7,8 @@ import { addMessage, getMessagesByArtwork, Message } from '../../database/messag
 import { useLanguage } from '../../utils/i18n/LanguageContext';
 import { generateResponse } from '../../services/chat';
 import { Audio } from 'expo-av';
-import { deleteArtwork } from '../../database/artworks';
-import { BlurView } from 'expo-blur';
-import { saveAudioToFileSystem } from '../../utils/fileSystem';
 import { pollAudioUrl } from '../../services/audio';
+import { BlurView } from 'expo-blur';
 
 export default function ArtworkDetail() {
   const { id, from } = useLocalSearchParams();
@@ -57,7 +55,7 @@ export default function ArtworkDetail() {
   useEffect(() => {
     if (artwork && !audioUrl) {
       const stopPolling = pollAudioUrl({
-        artworkId: artwork.id,
+        sessionId: artwork.session_id,
         onAudioReady: async (localAudioUri) => {
           setAudioUrl(localAudioUri);
           setIsAudioReady(true);

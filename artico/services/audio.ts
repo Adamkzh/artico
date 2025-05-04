@@ -1,14 +1,14 @@
 import { saveAudioToFileSystem } from '../utils/fileSystem';
 
 interface PollAudioOptions {
-  artworkId: string;
+  sessionId: string;
   onAudioReady: (localAudioUri: string) => void;
   onError?: (error: any) => void;
   timeoutMs?: number;
 }
 
 export const pollAudioUrl = ({
-  artworkId,
+  sessionId,
   onAudioReady,
   onError,
   timeoutMs = 30 * 1000
@@ -18,7 +18,7 @@ export const pollAudioUrl = ({
   const poll = async () => {
     try {
       const ip = "192.168.1.21";
-      const response = await fetch(`http://${ip}:8000/api/audio_url?artwork_id=${artworkId}`);
+      const response = await fetch(`http://${ip}:8000/api/audio_url?session_id=${sessionId}`);
       const data = await response.json();
 
       if (data.audio_url) {
