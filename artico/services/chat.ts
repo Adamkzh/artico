@@ -3,7 +3,7 @@ interface ChatResponse {
   audio_url?: string;
 }
 
-export const generateResponse = async (sessionId: string, message: string): Promise<ChatResponse> => {
+export const generateResponse = async (artworkId: string, message: string): Promise<ChatResponse> => {
   try {
     // TODO: Implement actual chat API call
     // For now, return a mock response

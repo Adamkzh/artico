@@ -6,19 +6,15 @@ class PromptGenerator:
     ROLE_STYLES = {
         "child": (
             "You are a patient and engaging museum guide who specializes in explaining artworks to children. "
-            "You use simple, vivid language, and encourage imagination in your storytelling."
         ),
         "adult": (
             "You are an experienced museum docent"
-            "You explain the background, style, and significance of artworks in an accessible and friendly way."
         ),
         "senior": (
             "You are a considerate museum guide who speaks clearly and slowly. "
-            "You help senior visitors understand artworks by using simple, respectful, and culturally rich explanations."
         ),
         "expert": (
             "You are an art historian giving in-depth museum tours. "
-            "You use precise, professional language, and explain the historical background, style, techniques, and significance of artworks."
         )
     }
 
@@ -54,6 +50,7 @@ class PromptGenerator:
                 "Speak at a slightly slower pace. Include five key aspects: "
                 "what the artwork depicts (its subject), how it's composed (style, color, brushwork), "
                 "the background story of the artist and historical context, the possible meaning or message behind the piece. "
+                "No strict time limit — tell the story fully and captivatingly in your own words. "
                 f"The explanation should be spoken in {self.target_language}."
             )
 
@@ -62,14 +59,14 @@ class PromptGenerator:
                 "Please generate a professional spoken analysis of this artwork, aimed at experts in art history. "
                 "Touch on the following aspects: subject matter and iconography, formal elements and techniques, "
                 "art historical and socio-political context, interpretive meaning, and lasting impact or critical reception. "
-                "Use precise terminology and a scholarly tone while keeping the narrative engaging. Limit to about 60 seconds. "
+                "Use precise terminology and a scholarly tone while keeping the narrative engaging. "
+                "No strict time limit — tell the story fully and captivatingly in your own words. "
                 f"The explanation should be spoken in {self.target_language}."
             )
 
         else:  # default: adult
             base_prompt = (
                 "Please create a spoken explanation about this artwork, aimed at general visitors. "
-                "Speak in a natural, engaging tone, as if chatting face-to-face. "
                 "Focus on interesting stories, historical background, and little-known facts behind the creation of the artwork, "
                 "rather than just describing what’s in the painting. "
                 "Feel free to include emotional elements and vivid details to spark the listener's imagination. "

@@ -1,17 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform, SafeAreaView, Alert, ImageBackground } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getArtwork } from '../../database/artworks';
-import { getSessionsByArtwork } from '../../database/sessions';
-import { addMessage, getMessagesBySession, Message } from '../../database/messages';
+import { addMessage, getMessagesByArtwork, Message } from '../../database/messages';
 import { useLanguage } from '../../utils/i18n/LanguageContext';
-import { useRole } from '../../utils/i18n/RoleContext';
 import { generateResponse } from '../../services/chat';
 import { Audio } from 'expo-av';
-import { addSession } from '../../database/sessions';
 import { deleteArtwork } from '../../database/artworks';
-import { deleteImageFromFileSystem } from '../../utils/fileSystem';
 import { BlurView } from 'expo-blur';
 
 export default function ArtworkDetail() {
@@ -27,6 +23,7 @@ export default function ArtworkDetail() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isAudioReady, setIsAudioReady] = useState(false);
   const [shouldRenderImage, setShouldRenderImage] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   
   useEffect(() => {
@@ -42,11 +39,8 @@ export default function ArtworkDetail() {
           }
         }
         setArtwork(artworkData);
-        const sessions = await getSessionsByArtwork(artworkData.id);
-        if (sessions.length > 0) {
-          const messages = await getMessagesBySession(sessions[0].id);
-          setMessages(messages);
-        }
+        const messages = await getMessagesByArtwork(artworkData.id);
+        setMessages(messages);
       }
     };
     loadArtwork();
@@ -55,46 +49,26 @@ export default function ArtworkDetail() {
   const handleSend = async () => {
     if (!inputText.trim() || isLoading) return;
 
-    setIsLoading(true);
-
     try {
-      // Check if session exists first
-      const existingSessions = await getSessionsByArtwork(artwork.id);
-      let sessionId = artwork.session_id;
-
-      if (!existingSessions.length) {
-        const session = await addSession({
-          artwork_id: artwork.id,
-          session_id: artwork.session_id
-        });
-        sessionId = session.id;
-        
-        // Add initial description message
-        await addMessage({
-          session_id: sessionId,
-          role: 'assistant',
-          text: artwork.description
-        });
-        
-        // Reload messages
-        const updatedMessages = await getMessagesBySession(sessionId);
-        setMessages(updatedMessages);
-      }
-
       const userMessage: Omit<Message, 'id' | 'type' | 'created_at'> = {
-        session_id: sessionId,
+        artwork_id: artwork.id,
         role: 'user',
         text: inputText
       };
 
+      await addMessage(userMessage);
       setMessages(prev => [...prev, { ...userMessage, id: `msg_${Date.now()}`, type: 'message', created_at: Date.now() }]);
       setInputText('');
 
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+
       // Get AI response
-      const response = await generateResponse(sessionId, inputText);
+      const response = await generateResponse(artwork.id, inputText);
       
       const assistantMessage: Omit<Message, 'id' | 'type' | 'created_at'> = {
-        session_id: sessionId,
+        artwork_id: artwork.id,
         role: 'assistant',
         text: response.text
       };
@@ -102,6 +76,9 @@ export default function ArtworkDetail() {
       await addMessage(assistantMessage);
       setMessages(prev => [...prev, { ...assistantMessage, id: `msg_${Date.now()}`, type: 'message', created_at: Date.now() }]);
       setIsAudioReady(true);
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     } catch (error) {
       console.error('Error generating response:', error);
     } finally {
@@ -136,35 +113,6 @@ export default function ArtworkDetail() {
     } catch (error) {
       console.error('Error playing audio:', error);
     }
-  };
-
-  const handleDelete = async () => {
-    Alert.alert(
-      t('deleteArtwork'),
-      t('deleteArtworkConfirm'),
-      [
-        {
-          text: t('cancel'),
-          style: 'cancel'
-        },
-        {
-          text: t('delete'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Delete the artwork and all related data first
-              await deleteArtwork(artwork.id);
-              
-              // Navigate back to home
-              router.replace('/');
-            } catch (error) {
-              console.error('Error deleting artwork:', error);
-              Alert.alert(t('error'), t('deleteArtworkError'));
-            }
-          }
-        }
-      ]
-    );
   };
 
   if (!artwork) {
@@ -216,6 +164,7 @@ export default function ArtworkDetail() {
             <ScrollView
               style={[styles.scrollSection, { backgroundColor: 'transparent' }]}
               contentContainerStyle={{ paddingBottom: 40 }}
+              ref={scrollViewRef}
             >
               {/* Artwork Image */}
               {artwork.image_uri && (
@@ -283,14 +232,26 @@ export default function ArtworkDetail() {
                   <Text style={styles.description}>{artwork.description}</Text>
                 </View>
               </View>
-              {/* Messages Section */}
-              <View style={styles.messagesSection}>
+              {/* Messages Section - 聊天区无卡片背景，贴合截图风格 */}
+              <View style={styles.messagesSectionAligned}>
                 {messages.map((message) => (
-                  <View key={message.id} style={styles.messageContainer}>
-                    <Text style={styles.messageRole}>
-                      {message.role === 'user' ? t('you') : t('assistant')}
-                    </Text>
-                    <Text style={styles.messageContent}>{message.text}</Text>
+                  <View
+                    key={message.id}
+                    style={
+                      message.role === 'user'
+                        ? styles.userBubbleRow
+                        : styles.aiBubbleRow
+                    }
+                  >
+                    <View
+                      style={
+                        message.role === 'user'
+                          ? styles.userBubble
+                          : styles.aiBubble
+                      }
+                    >
+                      <Text style={styles.bubbleText}>{message.text}</Text>
+                    </View>
                   </View>
                 ))}
               </View>
@@ -430,22 +391,70 @@ const styles = StyleSheet.create({
   actionButton: {
     marginRight: 20,
   },
-  messagesSection: {
-    paddingHorizontal: 20,
+  messagesSectionAligned: {
+    width: '100%',
+    paddingHorizontal: 0,
+    marginTop: 16,
   },
-  messageContainer: {
-    marginBottom: 20,
+  aiBubbleRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    marginBottom: 10,
+  },
+  userBubbleRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 10,
+  },
+  aiBubble: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 18,
+    marginLeft: 20,
+    marginRight: 'auto',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    maxWidth: '80%',
+    width: 'auto',
+  },
+  userBubble: {
+    alignSelf: 'flex-end',
+    backgroundColor: 'rgba(80, 90, 110, 0.7)',
+    borderRadius: 18,
+    marginRight: 20,
+    marginLeft: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    maxWidth: '80%',
+    width: 'auto',
+  },
+  bubble: {
+    maxWidth: '75%',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+  },
+  bubbleText: {
+    color: '#fff',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  roleAssistant: {
+    color: '#aaa',
+    fontSize: 15,
+    marginLeft: 4,
+    marginRight: 0,
+    alignSelf: 'flex-start',
+  },
+  roleUser: {
+    color: '#fff',
+    fontSize: 15,
+    marginRight: 4,
+    marginLeft: 0,
+    alignSelf: 'flex-end',
   },
   messageRole: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    opacity: 0.7,
-    marginBottom: 4,
-  },
-  messageContent: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    lineHeight: 24,
+    marginBottom: 2,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -498,7 +507,7 @@ const styles = StyleSheet.create({
   },
   description: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 14,
     lineHeight: 20,
     marginTop: 10,
     opacity: 0.9,

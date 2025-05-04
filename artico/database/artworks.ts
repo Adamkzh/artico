@@ -10,7 +10,6 @@ export interface Artwork {
   image_uri?: string;
   description?: string;
   created_at: number;
-  session_id: string;
 }
 
 export const addArtwork = async (artwork: Omit<Artwork, 'id' | 'type' | 'created_at'>): Promise<Artwork> => {
@@ -18,7 +17,7 @@ export const addArtwork = async (artwork: Omit<Artwork, 'id' | 'type' | 'created
   const created_at = Date.now();
   
   await db.runAsync(
-    'INSERT INTO artworks (id, type, museum_name, title, artist, image_uri, description, created_at, session_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO artworks (id, type, museum_name, title, artist, image_uri, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     [
       id,
       'artwork',
@@ -27,8 +26,7 @@ export const addArtwork = async (artwork: Omit<Artwork, 'id' | 'type' | 'created
       artwork.artist,
       artwork.image_uri || null,
       artwork.description || null,
-      created_at,
-      artwork.session_id
+      created_at
     ]
   );
 
@@ -72,7 +70,7 @@ export const updateArtwork = async (artwork: Artwork): Promise<Artwork> => {
 
 export const deleteArtwork = async (artworkId: string): Promise<void> => {
   try {
-    // Get the artwork first to get the image URI and session_id
+    // Get the artwork first to get the image URI
     const artwork = await getArtwork(artworkId);
     if (!artwork) {
       throw new Error('Artwork not found');
@@ -80,14 +78,8 @@ export const deleteArtwork = async (artworkId: string): Promise<void> => {
 
     // Delete associated messages
     await db.runAsync(
-      'DELETE FROM messages WHERE session_id = ?',
-      [artwork.session_id]
-    );
-
-    // Delete associated session
-    await db.runAsync(
-      'DELETE FROM sessions WHERE id = ?',
-      [artwork.session_id]
+      'DELETE FROM messages WHERE artwork_id = ?',
+      [artworkId]
     );
 
     // Delete the image file if it exists

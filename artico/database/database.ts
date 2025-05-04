@@ -21,10 +21,7 @@ export const initDatabase = async () => {
       'CREATE TABLE IF NOT EXISTS artworks (id TEXT PRIMARY KEY, type TEXT, museum_name TEXT, museum_location TEXT, title TEXT, artist TEXT, image_uri TEXT, description TEXT, created_at INTEGER, session_id TEXT)'
     );
     await db.runAsync(
-      'CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, type TEXT, created_at INTEGER, artwork_id TEXT, artwork_description TEXT, session_id TEXT)'
-    );
-    await db.runAsync(
-      'CREATE TABLE IF NOT EXISTS messages (id TEXT PRIMARY KEY, type TEXT, session_id TEXT, role TEXT, text TEXT, audio_path TEXT, created_at INTEGER)'
+      'CREATE TABLE IF NOT EXISTS messages (id TEXT PRIMARY KEY, type TEXT, artwork_id TEXT, role TEXT, text TEXT, audio_path TEXT, created_at INTEGER)'
     );
 
     // Verify tables were created

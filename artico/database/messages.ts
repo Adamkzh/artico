@@ -3,7 +3,7 @@ import db from './database';
 export interface Message {
   id: string;
   type: 'message';
-  session_id: string;
+  artwork_id: string;
   role: string;
   text: string;
   audio_path?: string;
@@ -15,11 +15,11 @@ export const addMessage = async (message: Omit<Message, 'id' | 'type' | 'created
   const created_at = Date.now();
   
   await db.runAsync(
-    'INSERT INTO messages (id, type, session_id, role, text, audio_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO messages (id, type, artwork_id, role, text, audio_path, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
     [
       id,
       'message',
-      message.session_id,
+      message.artwork_id,
       message.role,
       message.text,
       message.audio_path || null,
@@ -49,4 +49,11 @@ export const getLastMessage = async (sessionId: string): Promise<Message | null>
     [sessionId]
   );
   return result || null;
+};
+
+export const getMessagesByArtwork = async (artworkId: string): Promise<Message[]> => {
+  return await db.getAllAsync<Message>(
+    'SELECT * FROM messages WHERE artwork_id = ? ORDER BY created_at ASC',
+    [artworkId]
+  );
 }; 
