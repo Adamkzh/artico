@@ -31,11 +31,11 @@ async def upload_image(
     print(parsed_artworks_info)
 
     # 2. Add audio generation to background tasks
-    background_tasks.add_task(
-        generate_and_store_audio,
-        parsed_artworks_info.description,
-        session_id
-    )
+    # background_tasks.add_task(
+    #     generate_and_store_audio,
+    #     parsed_artworks_info.description,
+    #     session_id
+    # )
 
     # 3. Return immediate response with text only
     return JSONResponse({

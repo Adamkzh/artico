@@ -14,7 +14,7 @@ export const identifyArtwork = async (imageUri: string, language: string = 'en',
     const compressed = await ImageManipulator.manipulateAsync(
       imageUri,
       [{ resize: { width: 800 } }],
-      { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG }
+      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
     );
 
     const formData = new FormData();

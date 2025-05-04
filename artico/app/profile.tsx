@@ -102,16 +102,16 @@ const ProfileScreen = () => {
               <TouchableOpacity
                 key={lang.id}
                 style={[styles.languageCell, pendingLanguage === lang.id && styles.languageCellSelected]}
-                onPress={() => setPendingLanguage(lang.id as any)}
+                onPress={() => {
+                  setLanguage(lang.id as any);
+                  setLanguageModalVisible(false);
+                }}
               >
                 <Text style={styles.flag}>{lang.flag}</Text>
                 <Text style={styles.languageName}>{lang.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
-          <TouchableOpacity style={styles.doneButton} onPress={() => { if (pendingLanguage !== language) setLanguage(pendingLanguage as any); setLanguageModalVisible(false); }}>
-            <Text style={styles.doneButtonText}>Done</Text>
-          </TouchableOpacity>
         </View>
       </Modal>
 
@@ -130,16 +130,16 @@ const ProfileScreen = () => {
               <TouchableOpacity
                 key={role.id}
                 style={[styles.languageCell, pendingRole === role.id && styles.languageCellSelected]}
-                onPress={() => setPendingRole(role.id as "adult" | "child" | "senior" | "expert")}
+                onPress={() => {
+                  setRole(role.id as "adult" | "child" | "senior" | "expert");
+                  setRoleModalVisible(false);
+                }}
               >
                 <Text style={styles.flag}>{role.icon}</Text>
                 <Text style={styles.languageName}>{getRoleLabel(role.id)}</Text>
               </TouchableOpacity>
             ))}
           </View>
-          <TouchableOpacity style={styles.doneButton} onPress={() => { if (pendingRole !== role) setRole(pendingRole as any); setRoleModalVisible(false); }}>
-            <Text style={styles.doneButtonText}>Done</Text>
-          </TouchableOpacity>
         </View>
       </Modal>
     </View>
@@ -250,17 +250,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#222',
-  },
-  doneButton: {
-    backgroundColor: '#222',
-    borderRadius: 16,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  doneButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
 });
 
