@@ -390,13 +390,13 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   artistRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 2,
+    marginBottom: -8,
   },
   artistMeta: {
     color: '#FFFFFF',
@@ -414,6 +414,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     opacity: 0.7,
+    marginBottom: 0,
   },
   museumLogo: {
     width: 48,
@@ -497,9 +498,9 @@ const styles = StyleSheet.create({
   },
   description: {
     color: '#FFFFFF',
-    fontSize: 16,
-    lineHeight: 24,
-    marginTop: 16,
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 10,
     opacity: 0.9,
   },
 }); 
