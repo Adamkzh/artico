@@ -35,22 +35,6 @@ export const addMessage = async (message: Omit<Message, 'id' | 'type' | 'created
   };
 };
 
-export const getMessagesBySession = async (sessionId: string): Promise<Message[]> => {
-  const results = await db.getAllAsync<Message>(
-    'SELECT * FROM messages WHERE session_id = ? ORDER BY created_at ASC',
-    [sessionId]
-  );
-  return results;
-};
-
-export const getLastMessage = async (sessionId: string): Promise<Message | null> => {
-  const result = await db.getFirstAsync<Message>(
-    'SELECT * FROM messages WHERE session_id = ? ORDER BY created_at DESC LIMIT 1',
-    [sessionId]
-  );
-  return result || null;
-};
-
 export const getMessagesByArtwork = async (artworkId: string): Promise<Message[]> => {
   return await db.getAllAsync<Message>(
     'SELECT * FROM messages WHERE artwork_id = ? ORDER BY created_at ASC',
