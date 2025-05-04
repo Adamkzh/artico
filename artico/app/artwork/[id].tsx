@@ -28,6 +28,32 @@ export default function ArtworkDetail() {
 
   
   useEffect(() => {
+    // Configure audio for background playback
+    const setupAudio = async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: true,
+          shouldDuckAndroid: true,
+          interruptionModeIOS: 1, // DoNotMix
+          interruptionModeAndroid: 1, // DoNotMix
+        });
+      } catch (error) {
+        console.error('Error setting up audio mode:', error);
+      }
+    };
+    setupAudio();
+
+    // Cleanup function
+    return () => {
+      if (sound) {
+        sound.stopAsync();
+        sound.unloadAsync();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const loadArtwork = async () => {
       const artworkData = await getArtwork(id as string);
       if (artworkData) {
@@ -43,23 +69,44 @@ export default function ArtworkDetail() {
         const messages = await getMessagesByArtwork(artworkData.id);
         setMessages(messages);
         if (artworkData.audio_url) {
-          setAudioUrl(artworkData.audio_url);
-          setIsAudioReady(true);
+          console.log("Loading audio from:", artworkData.audio_url);
+          try {
+            const { sound: newSound } = await Audio.Sound.createAsync(
+              { uri: artworkData.audio_url },
+              { shouldPlay: false }
+            );
+            setSound(newSound);
+            setAudioUrl(artworkData.audio_url);
+            setIsAudioReady(true);
+          } catch (error) {
+            console.error('Error loading audio:', error);
+          }
         }
       }
     };
     loadArtwork();
   }, [id]);
 
-
   useEffect(() => {
-    if (artwork && !audioUrl) {
+    if (artwork && !audioUrl && artwork.session_id) {
+      console.log("artwork", artwork);
+      console.log("Starting audio polling for session:", artwork.session_id);
       const stopPolling = pollAudioUrl({
         sessionId: artwork.session_id,
         onAudioReady: async (localAudioUri) => {
-          setAudioUrl(localAudioUri);
-          setIsAudioReady(true);
-          await updateArtwork({ ...artwork, audio_url: localAudioUri });
+          console.log("Audio ready, saving to:", localAudioUri);
+          try {
+            const updatedArtwork = { ...artwork, audio_url: localAudioUri };
+            await updateArtwork(updatedArtwork);
+            setArtwork(updatedArtwork);
+            setAudioUrl(localAudioUri);
+            setIsAudioReady(true);
+          } catch (error) {
+            console.error("Error updating artwork with audio URL:", error);
+          }
+        },
+        onError: (error) => {
+          console.error("Audio polling error:", error);
         }
       });
       return stopPolling;
@@ -117,6 +164,7 @@ export default function ArtworkDetail() {
           setIsPlaying(true);
         }
       } else {
+        console.log("Creating new sound for:", audioPath);
         const { sound: newSound } = await Audio.Sound.createAsync(
           { uri: audioPath },
           { shouldPlay: true }

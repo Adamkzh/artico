@@ -58,6 +58,7 @@ export const getArtworksByMuseum = async (museumName: string): Promise<Artwork[]
 };
 
 export const updateArtwork = async (artwork: Artwork): Promise<Artwork> => {
+  console.log("Updating artwork with audio_url:", artwork.audio_url);
   await db.runAsync(
     'UPDATE artworks SET museum_name = ?, title = ?, artist = ?, image_uri = ?, description = ?, audio_url = ?, session_id = ? WHERE id = ?',
     [
@@ -68,6 +69,7 @@ export const updateArtwork = async (artwork: Artwork): Promise<Artwork> => {
       artwork.description || null,
       artwork.audio_url || null,
       artwork.session_id || null,
+      artwork.id
     ]
   );
   return artwork;
