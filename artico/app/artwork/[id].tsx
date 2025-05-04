@@ -26,7 +26,9 @@ export default function ArtworkDetail() {
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isAudioReady, setIsAudioReady] = useState(false);
+  const [shouldRenderImage, setShouldRenderImage] = useState(false);
 
+  
   useEffect(() => {
     const loadArtwork = async () => {
       const artworkData = await getArtwork(id as string);
@@ -34,6 +36,7 @@ export default function ArtworkDetail() {
         if (artworkData?.image_uri) {
           try {
             await Image.prefetch(artworkData.image_uri);
+            setShouldRenderImage(true);
           } catch (err) {
             console.warn("Prefetch failed:", err);
           }
@@ -217,24 +220,32 @@ export default function ArtworkDetail() {
               {/* Artwork Image */}
               {artwork.image_uri && (
                 <View style={styles.imageContainer}>
-                  <Image
-                    source={{ uri: artwork.image_uri }}
-                    style={styles.topImage}
-                    resizeMode="cover"
-                    onLoadStart={() => setIsImageLoaded(false)}
-                    onLoadEnd={() => setIsImageLoaded(true)}
-                    onError={() => {
-                      console.warn('Image failed to load.');
-                      setIsImageLoaded(true);
-                    }}
-                  />
-                  {!isImageLoaded && (
+                  {shouldRenderImage ? (
+                    <Image
+                      source={{ uri: artwork.image_uri }}
+                      style={styles.topImage}
+                      resizeMode="cover"
+                      onLoadStart={() => {
+                        setIsImageLoaded(false);
+                      }}
+                      onLoadEnd={() => {
+                        setIsImageLoaded(true);
+                        setShouldRenderImage(true);
+                      }}
+                      onError={() => {
+                        console.warn('Image failed to load.');
+                        setIsImageLoaded(true);
+                        setShouldRenderImage(false);
+                      }}
+                    />
+                  ) : (
                     <View style={styles.imageLoadingContainer}>
                       <Text style={styles.imageLoadingText}>{t('loading')}</Text>
                     </View>
                   )}
                 </View>
               )}
+
               {/* Title and Metadata Block */}
               <View style={[styles.metaBlock, {backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20}]}> 
                 <View style={{ flex: 1 }}>
