@@ -96,7 +96,7 @@ const HomeScreen = () => {
                   {artwork.title}
                 </Text>
                 <Text style={styles.artworkMuseum} numberOfLines={1}>
-                  {artwork.museum_name}
+                  {artwork.artist}
                 </Text>
               </View>
             </TouchableOpacity>

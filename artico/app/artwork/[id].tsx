@@ -18,7 +18,6 @@ export default function ArtworkDetail() {
   const { id, from } = useLocalSearchParams();
   const router = useRouter();
   const { t } = useLanguage();
-  const { role } = useRole();
   const [artwork, setArtwork] = useState<any>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
@@ -32,6 +31,13 @@ export default function ArtworkDetail() {
     const loadArtwork = async () => {
       const artworkData = await getArtwork(id as string);
       if (artworkData) {
+        if (artworkData?.image_uri) {
+          try {
+            await Image.prefetch(artworkData.image_uri);
+          } catch (err) {
+            console.warn("Prefetch failed:", err);
+          }
+        }
         setArtwork(artworkData);
         const sessions = await getSessionsByArtwork(artworkData.id);
         if (sessions.length > 0) {
