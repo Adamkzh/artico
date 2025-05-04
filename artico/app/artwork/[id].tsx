@@ -9,6 +9,7 @@ import { generateResponse } from '../../services/chat';
 import { Audio } from 'expo-av';
 import { pollAudioUrl } from '../../services/audio';
 import { BlurView } from 'expo-blur';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function ArtworkDetail() {
   const { id, from } = useLocalSearchParams();
@@ -43,15 +44,18 @@ export default function ArtworkDetail() {
       }
     };
     setupAudio();
-
-    // Cleanup function
-    return () => {
-      if (sound) {
-        sound.stopAsync();
-        sound.unloadAsync();
-      }
-    };
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        if (sound) {
+          sound.stopAsync();
+          setIsPlaying(false);
+        }
+      };
+    }, [sound])
+  );
 
   useEffect(() => {
     const loadArtwork = async () => {
