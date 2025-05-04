@@ -2,13 +2,15 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform, SafeAreaView, Alert, ImageBackground } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getArtwork } from '../../database/artworks';
+import { getArtwork, updateArtwork } from '../../database/artworks';
 import { addMessage, getMessagesByArtwork, Message } from '../../database/messages';
 import { useLanguage } from '../../utils/i18n/LanguageContext';
 import { generateResponse } from '../../services/chat';
 import { Audio } from 'expo-av';
 import { deleteArtwork } from '../../database/artworks';
 import { BlurView } from 'expo-blur';
+import { saveAudioToFileSystem } from '../../utils/fileSystem';
+import { pollAudioUrl } from '../../services/audio';
 
 export default function ArtworkDetail() {
   const { id, from } = useLocalSearchParams();
@@ -23,6 +25,7 @@ export default function ArtworkDetail() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isAudioReady, setIsAudioReady] = useState(false);
   const [shouldRenderImage, setShouldRenderImage] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
   
@@ -41,10 +44,29 @@ export default function ArtworkDetail() {
         setArtwork(artworkData);
         const messages = await getMessagesByArtwork(artworkData.id);
         setMessages(messages);
+        if (artworkData.audio_url) {
+          setAudioUrl(artworkData.audio_url);
+          setIsAudioReady(true);
+        }
       }
     };
     loadArtwork();
   }, [id]);
+
+
+  useEffect(() => {
+    if (artwork && !audioUrl) {
+      const stopPolling = pollAudioUrl({
+        artworkId: artwork.id,
+        onAudioReady: async (localAudioUri) => {
+          setAudioUrl(localAudioUri);
+          setIsAudioReady(true);
+          await updateArtwork({ ...artwork, audio_url: localAudioUri });
+        }
+      });
+      return stopPolling;
+    }
+  }, [artwork?.id, audioUrl]);
 
   const handleSend = async () => {
     if (!inputText.trim() || isLoading) return;
@@ -213,12 +235,10 @@ export default function ArtworkDetail() {
                           isAudioReady && styles.titleAudioButtonActive
                         ]}
                         onPress={() => {
-                          if (!isAudioReady) return;
-                          const messageWithAudio = messages.find(msg => msg.audio_path);
-                          if (messageWithAudio) {
-                            handlePlayPause(messageWithAudio.id, messageWithAudio.audio_path!);
-                          }
+                          if (!isAudioReady || !audioUrl) return;
+                          handlePlayPause('audio', audioUrl);
                         }}
+                        disabled={!isAudioReady}
                       >
                         <Ionicons 
                           name={isPlaying ? "pause" : "play"} 

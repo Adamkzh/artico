@@ -10,6 +10,7 @@ export interface Artwork {
   image_uri?: string;
   description?: string;
   created_at: number;
+  audio_url?: string;
 }
 
 export const addArtwork = async (artwork: Omit<Artwork, 'id' | 'type' | 'created_at'>): Promise<Artwork> => {
@@ -17,7 +18,7 @@ export const addArtwork = async (artwork: Omit<Artwork, 'id' | 'type' | 'created
   const created_at = Date.now();
   
   await db.runAsync(
-    'INSERT INTO artworks (id, type, museum_name, title, artist, image_uri, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO artworks (id, type, museum_name, title, artist, image_uri, description, created_at, audio_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       id,
       'artwork',
@@ -26,7 +27,8 @@ export const addArtwork = async (artwork: Omit<Artwork, 'id' | 'type' | 'created
       artwork.artist,
       artwork.image_uri || null,
       artwork.description || null,
-      created_at
+      created_at,
+      artwork.audio_url || null
     ]
   );
 
@@ -55,13 +57,14 @@ export const getArtworksByMuseum = async (museumName: string): Promise<Artwork[]
 
 export const updateArtwork = async (artwork: Artwork): Promise<Artwork> => {
   await db.runAsync(
-    'UPDATE artworks SET museum_name = ?, title = ?, artist = ?, image_uri = ?, description = ? WHERE id = ?',
+    'UPDATE artworks SET museum_name = ?, title = ?, artist = ?, image_uri = ?, description = ?, audio_url = ? WHERE id = ?',
     [
       artwork.museum_name,
       artwork.title,
       artwork.artist,
       artwork.image_uri || null,
       artwork.description || null,
+      artwork.audio_url || null,
       artwork.id
     ]
   );
