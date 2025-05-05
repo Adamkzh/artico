@@ -23,7 +23,6 @@ export const pollAudioUrl = ({
 
       if (data.audio_url) {
         const savedAudioUri = await saveAudioToFileSystem(data.audio_url);
-        console.log(`Audio saved to ${savedAudioUri}`);
         onAudioReady(savedAudioUri);
         return true;
       }

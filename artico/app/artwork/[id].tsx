@@ -73,7 +73,6 @@ export default function ArtworkDetail() {
         const messages = await getMessagesByArtwork(artworkData.id);
         setMessages(messages);
         if (artworkData.audio_url) {
-          console.log("Loading audio from:", artworkData.audio_url);
           try {
             const { sound: newSound } = await Audio.Sound.createAsync(
               { uri: artworkData.audio_url },
@@ -93,12 +92,9 @@ export default function ArtworkDetail() {
 
   useEffect(() => {
     if (artwork && !audioUrl && artwork.session_id) {
-      console.log("artwork", artwork);
-      console.log("Starting audio polling for session:", artwork.session_id);
       const stopPolling = pollAudioUrl({
         sessionId: artwork.session_id,
         onAudioReady: async (localAudioUri) => {
-          console.log("Audio ready, saving to:", localAudioUri);
           try {
             const updatedArtwork = { ...artwork, audio_url: localAudioUri };
             await updateArtwork(updatedArtwork);

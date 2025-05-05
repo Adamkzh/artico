@@ -19,7 +19,7 @@ import { useLanguage } from '../utils/i18n/LanguageContext';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COLUMN_GAP = 20;
 const NUM_COLUMNS = 2;
-const ITEM_WIDTH = (SCREEN_WIDTH - 40 - COLUMN_GAP) / NUM_COLUMNS; // 40 for padding
+const ITEM_WIDTH = (SCREEN_WIDTH - 40 - COLUMN_GAP) / NUM_COLUMNS;
 
 const HomeScreen = () => {
   const router = useRouter();
@@ -51,7 +51,6 @@ const HomeScreen = () => {
 
     updateDateTime();
     const interval = setInterval(updateDateTime, 60000);
-
     return () => clearInterval(interval);
   }, [t]);
 
@@ -105,58 +104,58 @@ const HomeScreen = () => {
   };
 
   const renderArtworkGrid = () => {
-    const rows = [];
-    for (let i = 0; i < artworks.length; i += NUM_COLUMNS) {
-      const row = artworks.slice(i, i + NUM_COLUMNS);
-      rows.push(
-        <View key={i} style={styles.row}>
-          {row.map((artwork) => (
-            <Pressable
-              key={artwork.id}
-              style={styles.artworkItem}
-              onPress={() => !editMode && router.push(`/artwork/${artwork.id}`)}
-              onLongPress={handleLongPress}
-              delayLongPress={300}
-            >
-              {editMode && (
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={() => handleDelete(artwork.id)}
-                  hitSlop={10}
-                >
-                  <Ionicons name="close-circle" size={28} color="#FF5555" />
-                </TouchableOpacity>
-              )}
-              {artwork.image_uri && (
-                <Image
-                  source={{ uri: artwork.image_uri }}
-                  style={[
-                    styles.artworkImage,
-                    { height: imageSizes[artwork.id] || ITEM_WIDTH * (4 / 3) },
-                  ]}
-                  resizeMode="cover"
-                />
-              )}
-              <View style={styles.artworkInfo}>
-                <Text style={styles.artworkTitle} numberOfLines={1}>
-                  {artwork.title}
-                </Text>
-                <Text style={styles.artworkArtist} numberOfLines={1}>
-                  {artwork.artist}
-                </Text>
-              </View>
-            </Pressable>
-          ))}
-          {row.length < NUM_COLUMNS &&
-            Array(NUM_COLUMNS - row.length)
-              .fill(null)
-              .map((_, index) => (
-                <View key={`empty-${index}`} style={[styles.artworkItem, styles.emptyItem]} />
-              ))}
-        </View>
-      );
-    }
-    return rows;
+    const columns: any[][] = Array.from({ length: NUM_COLUMNS }, () => []);
+    const columnHeights: number[] = Array(NUM_COLUMNS).fill(0);
+
+    artworks.forEach((artwork) => {
+      const height = imageSizes[artwork.id] || ITEM_WIDTH * (4 / 3);
+      const shortestColumnIndex = columnHeights.indexOf(Math.min(...columnHeights));
+      columns[shortestColumnIndex].push({ ...artwork, height });
+      columnHeights[shortestColumnIndex] += height + COLUMN_GAP;
+    });
+
+    return (
+      <View style={styles.masonryContainer}>
+        {columns.map((column, colIndex) => (
+          <View key={colIndex} style={styles.masonryColumn}>
+            {column.map((artwork) => (
+              <Pressable
+                key={artwork.id}
+                style={[styles.cardContainer, { height: artwork.height + 70 }]}
+                onPress={() => !editMode && router.push(`/artwork/${artwork.id}`)}
+                onLongPress={handleLongPress}
+                delayLongPress={300}
+              >
+                {editMode && (
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDelete(artwork.id)}
+                    hitSlop={10}
+                  >
+                    <Ionicons name="close-circle" size={28} color="#FF5555" />
+                  </TouchableOpacity>
+                )}
+                {artwork.image_uri && (
+                  <Image
+                    source={{ uri: artwork.image_uri }}
+                    style={[styles.artworkImage, { height: artwork.height }]}
+                    resizeMode="cover"
+                  />
+                )}
+                <View style={styles.artworkTextWrapper}>
+                  <Text style={styles.artworkTitle} numberOfLines={1}>
+                    {artwork.title}
+                  </Text>
+                  <Text style={styles.artworkArtist} numberOfLines={1}>
+                    {artwork.artist}
+                  </Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        ))}
+      </View>
+    );
   };
 
   return (
@@ -197,23 +196,81 @@ const HomeScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 60 },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: 60,
+  },
   date: { color: '#FFFFFF', fontSize: 16, opacity: 0.7 },
   greeting: { color: '#FFFFFF', fontSize: 24, fontWeight: 'bold', marginTop: 5 },
-  profileButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#333333', justifyContent: 'center', alignItems: 'center' },
+  profileButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#333333',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   cameraSection: { alignItems: 'center', paddingVertical: 30 },
-  cameraButton: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#333333', justifyContent: 'center', alignItems: 'center' },
-  countSection: { paddingHorizontal: 20, paddingTop: 32, paddingBottom: 8, opacity: 0.7 },
+  cameraButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#333333',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  countSection: { paddingHorizontal: 20, paddingTop: 32, paddingBottom: 8 },
   countText: { color: '#fff', fontSize: 20, fontWeight: '600', marginBottom: 8 },
-  artworksSection: { paddingHorizontal: 20, paddingBottom: 20 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: COLUMN_GAP },
-  artworkItem: { width: ITEM_WIDTH, backgroundColor: '#181818', borderRadius: 20, overflow: 'hidden', marginBottom: 0 },
-  emptyItem: { backgroundColor: 'transparent' },
-  artworkImage: { width: '100%', borderTopLeftRadius: 20, borderTopRightRadius: 20 },
-  artworkInfo: { padding: 14, paddingBottom: 16 },
-  artworkTitle: { color: '#fff', fontSize: 14, fontWeight: '700', marginBottom: 2 },
-  artworkArtist: { color: '#fff', fontSize: 12, opacity: 0.7, fontWeight: '400' },
-  deleteButton: { position: 'absolute', top: 8, left: 8, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 14 },
+  artworksSection: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: COLUMN_GAP,
+  },
+  masonryContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  masonryColumn: {
+    width: ITEM_WIDTH,
+  },
+  cardContainer: {
+    width: ITEM_WIDTH,
+    marginBottom: COLUMN_GAP,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  artworkImage: {
+    width: '100%',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  artworkTextWrapper: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  artworkTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  artworkArtist: {
+    color: '#ccc',
+    fontSize: 14,
+    marginTop: 4,
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    zIndex: 10,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 14,
+  },
 });
 
 export default HomeScreen;
