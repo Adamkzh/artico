@@ -110,59 +110,142 @@ const HomeScreen = () => {
     setEditMode(false);
   };
 
-  const renderArtworkGrid = () => {
-    const columns: any[][] = Array.from({ length: NUM_COLUMNS }, () => []);
-    const columnHeights: number[] = Array(NUM_COLUMNS).fill(0);
-
+  function groupArtworksByDay(artworks: any[]) {
+    const groups: { [date: string]: any[] } = {};
     artworks.forEach((artwork) => {
-      const height = imageSizes[artwork.id] || ITEM_WIDTH * (4 / 3);
-      const shortestColumnIndex = columnHeights.indexOf(Math.min(...columnHeights));
-      columns[shortestColumnIndex].push({ ...artwork, height });
-      columnHeights[shortestColumnIndex] += height + COLUMN_GAP;
+      const dateObj = new Date(artwork.created_at);
+      const dateStr = dateObj.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+      if (!groups[dateStr]) groups[dateStr] = [];
+      groups[dateStr].push(artwork);
     });
+    return groups;
+  }
 
-    return (
-      <View style={styles.masonryContainer}>
-        {columns.map((column, colIndex) => (
-          <View key={colIndex} style={styles.masonryColumn}>
-            {column.map((artwork) => (
-              <Pressable
-                key={artwork.id}
-                style={[styles.cardContainer, { height: artwork.height + 56 }]}
-                onPress={() => !editMode && router.push(`/artwork/${artwork.id}`)}
-                onLongPress={handleLongPress}
-                delayLongPress={300}
-              >
-                {editMode && (
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => handleDelete(artwork.id)}
-                    hitSlop={10}
-                  >
-                    <Ionicons name="close-circle" size={28} color="#FF5555" />
-                  </TouchableOpacity>
-                )}
-                {artwork.image_uri && (
-                  <Image
-                    source={{ uri: artwork.image_uri }}
-                    style={[styles.artworkImage, { height: artwork.height }]}
-                    resizeMode="cover"
-                  />
-                )}
-                <View style={styles.artworkTextWrapper}>
-                  <Text style={styles.artworkTitle} numberOfLines={1}>
-                    {artwork.title}
-                  </Text>
-                  <Text style={styles.artworkArtist} numberOfLines={1}>
-                    {artwork.artist}
-                  </Text>
+  const renderArtworkGrid = () => {
+    if (activeTab === 'collections') {
+      const grouped = groupArtworksByDay(artworks);
+      return (
+        <View>
+          {Object.entries(grouped).map(([dateStr, groupArtworks]) => {
+            // Masonry columns for this group
+            const columns: any[][] = Array.from({ length: NUM_COLUMNS }, () => []);
+            const columnHeights: number[] = Array(NUM_COLUMNS).fill(0);
+
+            groupArtworks.forEach((artwork: any) => {
+              const height = imageSizes[artwork.id] || ITEM_WIDTH * (4 / 3);
+              const shortestColumnIndex = columnHeights.indexOf(Math.min(...columnHeights));
+              columns[shortestColumnIndex].push({ ...artwork, height });
+              columnHeights[shortestColumnIndex] += height + COLUMN_GAP;
+            });
+
+            return (
+              <View key={dateStr}>
+                <Text style={styles.daySectionTitle}>{dateStr}</Text>
+                <View style={styles.masonryContainer}>
+                  {columns.map((column, colIndex) => (
+                    <View key={colIndex} style={styles.masonryColumn}>
+                      {column.map((artwork) => (
+                        <Pressable
+                          key={artwork.id}
+                          style={[styles.cardContainer, { height: artwork.height + 56 }]}
+                          onPress={() => !editMode && router.push(`/artwork/${artwork.id}`)}
+                          onLongPress={handleLongPress}
+                          delayLongPress={300}
+                        >
+                          {editMode && (
+                            <TouchableOpacity
+                              style={styles.deleteButton}
+                              onPress={() => handleDelete(artwork.id)}
+                              hitSlop={10}
+                            >
+                              <Ionicons name="close-circle" size={28} color="#FF5555" />
+                            </TouchableOpacity>
+                          )}
+                          {artwork.image_uri && (
+                            <Image
+                              source={{ uri: artwork.image_uri }}
+                              style={[styles.artworkImage, { height: artwork.height }]}
+                              resizeMode="cover"
+                            />
+                          )}
+                          <View style={styles.artworkTextWrapper}>
+                            <Text style={styles.artworkTitle} numberOfLines={1}>
+                              {artwork.title}
+                            </Text>
+                            <Text style={styles.artworkArtist} numberOfLines={1}>
+                              {artwork.artist}
+                            </Text>
+                          </View>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ))}
                 </View>
-              </Pressable>
-            ))}
-          </View>
-        ))}
-      </View>
-    );
+              </View>
+            );
+          })}
+        </View>
+      );
+    } else {
+      // Liked tab: just show the grid as before
+      const columns: any[][] = Array.from({ length: NUM_COLUMNS }, () => []);
+      const columnHeights: number[] = Array(NUM_COLUMNS).fill(0);
+
+      artworks.forEach((artwork) => {
+        const height = imageSizes[artwork.id] || ITEM_WIDTH * (4 / 3);
+        const shortestColumnIndex = columnHeights.indexOf(Math.min(...columnHeights));
+        columns[shortestColumnIndex].push({ ...artwork, height });
+        columnHeights[shortestColumnIndex] += height + COLUMN_GAP;
+      });
+
+      return (
+        <View style={styles.masonryContainer}>
+          {columns.map((column, colIndex) => (
+            <View key={colIndex} style={styles.masonryColumn}>
+              {column.map((artwork) => (
+                <Pressable
+                  key={artwork.id}
+                  style={[styles.cardContainer, { height: artwork.height + 56 }]}
+                  onPress={() => !editMode && router.push(`/artwork/${artwork.id}`)}
+                  onLongPress={handleLongPress}
+                  delayLongPress={300}
+                >
+                  {editMode && (
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={() => handleDelete(artwork.id)}
+                      hitSlop={10}
+                    >
+                      <Ionicons name="close-circle" size={28} color="#FF5555" />
+                    </TouchableOpacity>
+                  )}
+                  {artwork.image_uri && (
+                    <Image
+                      source={{ uri: artwork.image_uri }}
+                      style={[styles.artworkImage, { height: artwork.height }]}
+                      resizeMode="cover"
+                    />
+                  )}
+                  <View style={styles.artworkTextWrapper}>
+                    <Text style={styles.artworkTitle} numberOfLines={1}>
+                      {artwork.title}
+                    </Text>
+                    <Text style={styles.artworkArtist} numberOfLines={1}>
+                      {artwork.artist}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          ))}
+        </View>
+      );
+    }
   };
 
   const renderTabs = () => (
@@ -252,7 +335,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   countSection: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8 },
-  countText: { color: '#fff', fontSize: 20, fontWeight: '600', marginBottom: 8 },
+  countText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '500',
+    opacity: 0.5,
+    marginBottom: 8,
+  },
   artworksSection: {
     flexDirection: 'row',
     paddingHorizontal: 20,
@@ -323,6 +412,15 @@ const styles = StyleSheet.create({
   },
   activeTabText: {
     color: 'rgba(255, 255, 255, 0.72)',
+  },
+  daySectionTitle: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '500',
+    opacity: 0.6,
+    marginTop: 16,
+    marginBottom: 6,
+    marginLeft: 4,
   },
 });
 
