@@ -21,6 +21,8 @@ const COLUMN_GAP = 20;
 const NUM_COLUMNS = 2;
 const ITEM_WIDTH = (SCREEN_WIDTH - 40 - COLUMN_GAP) / NUM_COLUMNS;
 
+type TabType = 'collections' | 'liked';
+
 const HomeScreen = () => {
   const router = useRouter();
   const { t } = useLanguage();
@@ -31,6 +33,7 @@ const HomeScreen = () => {
   const isFocused = useIsFocused();
   const [refreshing, setRefreshing] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('collections');
 
   useEffect(() => {
     const updateDateTime = () => {
@@ -56,9 +59,13 @@ const HomeScreen = () => {
 
   const loadArtworks = async () => {
     const artworksData = await getAllArtworks();
-    setArtworks(artworksData);
+    const filteredArtworks = activeTab === 'liked' 
+      ? artworksData.filter(artwork => artwork.liked)
+      : artworksData;
+    
+    setArtworks(filteredArtworks);
 
-    artworksData.forEach((artwork) => {
+    filteredArtworks.forEach((artwork) => {
       if (artwork.image_uri && !imageSizes[artwork.id]) {
         Image.getSize(
           artwork.image_uri,
@@ -81,7 +88,7 @@ const HomeScreen = () => {
   useFocusEffect(
     React.useCallback(() => {
       loadArtworks();
-    }, [])
+    }, [activeTab])
   );
 
   const onRefresh = React.useCallback(async () => {
@@ -121,7 +128,7 @@ const HomeScreen = () => {
             {column.map((artwork) => (
               <Pressable
                 key={artwork.id}
-                style={[styles.cardContainer, { height: artwork.height + 70 }]}
+                style={[styles.cardContainer, { height: artwork.height + 56 }]}
                 onPress={() => !editMode && router.push(`/artwork/${artwork.id}`)}
                 onLongPress={handleLongPress}
                 delayLongPress={300}
@@ -158,6 +165,27 @@ const HomeScreen = () => {
     );
   };
 
+  const renderTabs = () => (
+    <View style={styles.tabContainer}>
+      <TouchableOpacity
+        style={[styles.tab, activeTab === 'collections' && styles.activeTab]}
+        onPress={() => setActiveTab('collections')}
+      >
+        <Text style={[styles.tabText, activeTab === 'collections' && styles.activeTabText]}>
+          Artico History
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.tab, activeTab === 'liked' && styles.activeTab]}
+        onPress={() => setActiveTab('liked')}
+      >
+        <Text style={[styles.tabText, activeTab === 'liked' && styles.activeTabText]}>
+          Liked Artworks
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
       {isFocused && (
@@ -183,6 +211,7 @@ const HomeScreen = () => {
                 <Ionicons name="camera" size={40} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
+            {renderTabs()}
             <View style={styles.countSection}>
               <Text style={styles.countText}>{artworks.length} Items</Text>
             </View>
@@ -222,7 +251,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  countSection: { paddingHorizontal: 20, paddingTop: 32, paddingBottom: 8 },
+  countSection: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8 },
   countText: { color: '#fff', fontSize: 20, fontWeight: '600', marginBottom: 8 },
   artworksSection: {
     flexDirection: 'row',
@@ -251,7 +280,7 @@ const styles = StyleSheet.create({
   },
   artworkTextWrapper: {
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   artworkTitle: {
     color: '#fff',
@@ -261,7 +290,7 @@ const styles = StyleSheet.create({
   artworkArtist: {
     color: '#ccc',
     fontSize: 14,
-    marginTop: 4,
+    marginTop: 2,
   },
   deleteButton: {
     position: 'absolute',
@@ -270,6 +299,30 @@ const styles = StyleSheet.create({
     zIndex: 10,
     backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: 14,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: 'rgba(255, 255, 255, 0.72)',
+  },
+  tabText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  activeTabText: {
+    color: 'rgba(255, 255, 255, 0.72)',
   },
 });
 

@@ -12,6 +12,7 @@ export interface Artwork {
   created_at: number;
   audio_url?: string;
   session_id?: string;
+  liked?: boolean;
 }
 
 export const addArtwork = async (artwork: Omit<Artwork, 'id' | 'type' | 'created_at'>): Promise<Artwork> => {
@@ -19,7 +20,7 @@ export const addArtwork = async (artwork: Omit<Artwork, 'id' | 'type' | 'created
   const created_at = Date.now();
   
   await db.runAsync(
-    'INSERT INTO artworks (id, type, museum_name, title, artist, image_uri, description, created_at, audio_url, session_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO artworks (id, type, museum_name, title, artist, image_uri, description, created_at, audio_url, session_id, liked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       id,
       'artwork',
@@ -30,7 +31,8 @@ export const addArtwork = async (artwork: Omit<Artwork, 'id' | 'type' | 'created
       artwork.description || null,
       created_at,
       artwork.audio_url || null,
-      artwork.session_id || null
+      artwork.session_id || null,
+      artwork.liked || false
     ]
   );
 
@@ -58,9 +60,8 @@ export const getArtworksByMuseum = async (museumName: string): Promise<Artwork[]
 };
 
 export const updateArtwork = async (artwork: Artwork): Promise<Artwork> => {
-  console.log("Updating artwork with audio_url:", artwork.audio_url);
   await db.runAsync(
-    'UPDATE artworks SET museum_name = ?, title = ?, artist = ?, image_uri = ?, description = ?, audio_url = ?, session_id = ? WHERE id = ?',
+    'UPDATE artworks SET museum_name = ?, title = ?, artist = ?, image_uri = ?, description = ?, audio_url = ?, session_id = ?, liked = ? WHERE id = ?',
     [
       artwork.museum_name,
       artwork.title,
@@ -69,6 +70,7 @@ export const updateArtwork = async (artwork: Artwork): Promise<Artwork> => {
       artwork.description || null,
       artwork.audio_url || null,
       artwork.session_id || null,
+      artwork.liked || false,
       artwork.id
     ]
   );
@@ -109,4 +111,18 @@ export const getAllArtworks = async (): Promise<Artwork[]> => {
   return await db.getAllAsync<Artwork>(
     'SELECT * FROM artworks ORDER BY created_at DESC'
   );
+};
+
+export const toggleArtworkLike = async (artworkId: string): Promise<Artwork> => {
+  const artwork = await getArtwork(artworkId);
+  if (!artwork) {
+    throw new Error('Artwork not found');
+  }
+  
+  const updatedArtwork = {
+    ...artwork,
+    liked: !artwork.liked
+  };
+  
+  return await updateArtwork(updatedArtwork);
 }; 

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform, SafeAreaView, Alert, ImageBackground } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getArtwork, updateArtwork } from '../../database/artworks';
+import { getArtwork, updateArtwork, toggleArtworkLike } from '../../database/artworks';
 import { addMessage, getMessagesByArtwork, Message } from '../../database/messages';
 import { useLanguage } from '../../utils/i18n/LanguageContext';
 import { generateResponse } from '../../services/chat';
@@ -25,6 +25,7 @@ export default function ArtworkDetail() {
   const [isAudioReady, setIsAudioReady] = useState(false);
   const [shouldRenderImage, setShouldRenderImage] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isLiked, setIsLiked] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   
@@ -70,6 +71,7 @@ export default function ArtworkDetail() {
           }
         }
         setArtwork(artworkData);
+        setIsLiked(artworkData.liked || false);
         const messages = await getMessagesByArtwork(artworkData.id);
         setMessages(messages);
         if (artworkData.audio_url) {
@@ -91,7 +93,7 @@ export default function ArtworkDetail() {
   }, [id]);
 
   useEffect(() => {
-    if (artwork && !audioUrl && artwork.session_id) {
+    if (artwork && !audioUrl && artwork.session_id && from === 'loading') {
       const stopPolling = pollAudioUrl({
         sessionId: artwork.session_id,
         onAudioReady: async (localAudioUri) => {
@@ -111,7 +113,7 @@ export default function ArtworkDetail() {
       });
       return stopPolling;
     }
-  }, [artwork?.id, audioUrl]);
+  }, [artwork?.id, audioUrl, from]);
 
   const handleSend = async () => {
     if (!inputText.trim() || isLoading) return;
@@ -183,6 +185,16 @@ export default function ArtworkDetail() {
     }
   };
 
+  const handleLikeToggle = async () => {
+    try {
+      const updatedArtwork = await toggleArtworkLike(artwork.id);
+      setArtwork(updatedArtwork);
+      setIsLiked(updatedArtwork.liked || false);
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  };
+
   if (!artwork) {
     return (
       <View style={styles.container}>
@@ -217,8 +229,15 @@ export default function ArtworkDetail() {
               />
             </TouchableOpacity>
             <View style={styles.topNavRight}>
-              <TouchableOpacity style={styles.iconButton}>
-                <Ionicons name="heart-outline" size={24} color="#FFFFFF" />
+              <TouchableOpacity 
+                style={styles.iconButton}
+                onPress={handleLikeToggle}
+              >
+                <Ionicons 
+                  name={isLiked ? "heart" : "heart-outline"} 
+                  size={24} 
+                  color={isLiked ? "#FF3B30" : "#FFFFFF"} 
+                />
               </TouchableOpacity>
               <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/camera')}>
                 <Ionicons name="scan-outline" size={24} color="#FFFFFF" />
