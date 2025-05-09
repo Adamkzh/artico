@@ -560,9 +560,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#2a2a2a',
     borderRadius: 20,
     paddingHorizontal: 15,
-    paddingVertical: 13,
+    paddingVertical: 15,
     color: '#FFFFFF',
     marginRight: 10,
+    marginTop: -14,
     maxHeight: 120,
   },
   sendButton: {
