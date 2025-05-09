@@ -19,7 +19,7 @@ class GPTClient(AIClient):
         self.model_name = "gpt-4-vision-preview"
         self.prompt_generator = PromptGenerator(language=language, role=role)
 
-    def generate_initial_description(self, image_bytes, language="en", role="adult"):
+    def generate_initial_description(self, image_bytes):
         """
         Generate the initial spoken description for an artwork using GPT-4 Vision.
         """
@@ -42,6 +42,7 @@ class GPTClient(AIClient):
             max_tokens=800,
             response_format=ArtworkMetadata,
         )
+
         reply_json = completion.choices[0].message.parsed
         return reply_json
 

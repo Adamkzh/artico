@@ -38,20 +38,20 @@ class PromptGenerator:
 
         if self.role == "child":
             base_prompt = (
-                "Please create a fun and vivid spoken explanation about this artwork, aimed at young children. "
+                "Please create a fun and vivid explanation about this artwork, aimed at young children. "
                 "Use simple, imaginative language and avoid complex or technical terms. "
                 "Briefly describe what the painting shows, what colors and shapes you see, and what kind of story it might be telling. "
-                f"The explanation should be spoken in {self.target_language}."
+                 f"The data should be return in {self.target_language}."
             )
 
         elif self.role == "senior":
             base_prompt = (
-                "Please create a warm, respectful spoken explanation about this artwork, suitable for senior visitors. "
+                "Please create a warm, respectful explanation about this artwork, suitable for senior visitors. "
                 "Speak at a slightly slower pace. Include five key aspects: "
                 "what the artwork depicts (its subject), how it's composed (style, color, brushwork), "
                 "the background story of the artist and historical context, the possible meaning or message behind the piece. "
-                "No strict time limit — tell the story fully and captivatingly in your own words. "
-                f"The explanation should be spoken in {self.target_language}."
+                "No time limit — tell the story fully and captivatingly in your own words. "
+                f"The data should be return in {self.target_language}."
             )
 
         elif self.role == "expert":
@@ -60,18 +60,18 @@ class PromptGenerator:
                 "Touch on the following aspects: subject matter and iconography, formal elements and techniques, "
                 "art historical and socio-political context, interpretive meaning, and lasting impact or critical reception. "
                 "Use precise terminology and a scholarly tone while keeping the narrative engaging. "
-                "No strict time limit — tell the story fully and captivatingly in your own words. "
-                f"The explanation should be spoken in {self.target_language}."
+                "No time limit — tell the story fully and captivatingly in your own words. "
+                f"The data should be return in {self.target_language}."
             )
 
         else:  # default: adult
             base_prompt = (
-                "Please create a spoken explanation about this artwork, aimed at general visitors. "
+                "Please create a explanation about this artwork, aimed at general visitors. "
                 "Focus on interesting stories, historical background, and little-known facts behind the creation of the artwork, "
                 "rather than just describing what’s in the painting. "
-                "Feel free to include emotional elements and vivid details to spark the listener's imagination. "
-                "No strict time limit — tell the story fully and captivatingly in your own words. "
-                f"The explanation should be spoken in {self.target_language}."
+                "include emotional elements and vivid details to spark the listener's imagination. "
+                "No time limit — tell the story fully and captivatingly in your own words. "
+                f"The data should be return in {self.target_language}."
             )
 
         return base_prompt

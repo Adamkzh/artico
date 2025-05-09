@@ -41,9 +41,7 @@ async def upload_image(
 
     # 1. Generate initial structured data (parsed JSON)
     parsed_artworks_info: ArtworkMetadata = client.generate_initial_description(
-        image_bytes=image_bytes, 
-        language=language, 
-        role=role,
+        image_bytes=image_bytes
     )
 
     # 2. Add audio generation to background tasks

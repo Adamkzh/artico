@@ -15,7 +15,7 @@ class AIClient(ABC):
         self.role = role
 
     @abstractmethod
-    def generate_initial_description(self, image_bytes, language="en", role="adult"):
+    def generate_initial_description(self, image_bytes):
         """
         Generate the initial spoken description for an artwork.
         
