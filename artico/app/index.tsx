@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,9 @@ import {
   Dimensions,
   RefreshControl,
   Pressable,
+  Alert,
+  PanResponder,
+  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,6 +38,68 @@ const HomeScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('collections');
+  const [heldArtworkId, setHeldArtworkId] = useState<string | null>(null);
+  const pan = useRef(new Animated.ValueXY()).current;
+  const isNavigating = useRef(false);
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup animation on unmount
+      if (animationRef.current) {
+        animationRef.current.stop();
+      }
+      pan.setValue({ x: 0, y: 0 });
+    };
+  }, []);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderMove: (_, gesture) => {
+        if (gesture.dx < 0 && !isNavigating.current) { // Only allow left swipe
+          pan.x.setValue(gesture.dx);
+        }
+      },
+      onPanResponderRelease: (_, gesture) => {
+        if (gesture.dx < -100 && !isNavigating.current) { // If swiped left more than 100 units
+          isNavigating.current = true;
+          
+          // Stop any existing animation
+          if (animationRef.current) {
+            animationRef.current.stop();
+          }
+
+          router.push('/camera');
+          animationRef.current = Animated.timing(pan, {
+            toValue: { x: -SCREEN_WIDTH, y: 0 },
+            duration: 300,
+            useNativeDriver: true,
+          });
+
+          animationRef.current.start(() => {
+            pan.setValue({ x: 0, y: 0 });
+            isNavigating.current = false;
+            animationRef.current = null;
+          });
+        } else {
+          // Stop any existing animation
+          if (animationRef.current) {
+            animationRef.current.stop();
+          }
+
+          animationRef.current = Animated.spring(pan, {
+            toValue: { x: 0, y: 0 },
+            useNativeDriver: true,
+          });
+
+          animationRef.current.start(() => {
+            animationRef.current = null;
+          });
+        }
+      },
+    })
+  ).current;
 
   useEffect(() => {
     const updateDateTime = () => {
@@ -98,17 +163,37 @@ const HomeScreen = () => {
     setRefreshing(false);
   }, []);
 
-  const handleDelete = async (artworkId: string) => {
-    await deleteArtwork(artworkId);
-    await loadArtworks();
-  };
-
-  const handleLongPress = () => {
+  const handleLongPress = (artworkId: string) => {
+    setHeldArtworkId(artworkId);
     setEditMode(true);
   };
 
   const handleExitEditMode = () => {
     setEditMode(false);
+    setHeldArtworkId(null);
+  };
+
+  const handleDelete = async (artworkId: string) => {
+    Alert.alert(
+      "Delete Artwork",
+      "Are you sure you want to delete this artwork?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+          onPress: handleExitEditMode
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            await deleteArtwork(artworkId);
+            await loadArtworks();
+            handleExitEditMode();
+          }
+        }
+      ]
+    );
   };
 
   function groupArtworksByDay(artworks: any[]) {
@@ -154,10 +239,10 @@ const HomeScreen = () => {
                           key={artwork.id}
                           style={[styles.cardContainer, { height: artwork.height + 56 }]}
                           onPress={() => !editMode && router.push(`/artwork/${artwork.id}`)}
-                          onLongPress={handleLongPress}
+                          onLongPress={() => handleLongPress(artwork.id)}
                           delayLongPress={300}
                         >
-                          {editMode && (
+                          {editMode && heldArtworkId === artwork.id && (
                             <TouchableOpacity
                               style={styles.deleteButton}
                               onPress={() => handleDelete(artwork.id)}
@@ -212,10 +297,10 @@ const HomeScreen = () => {
                   key={artwork.id}
                   style={[styles.cardContainer, { height: artwork.height + 56 }]}
                   onPress={() => !editMode && router.push(`/artwork/${artwork.id}`)}
-                  onLongPress={handleLongPress}
+                  onLongPress={() => handleLongPress(artwork.id)}
                   delayLongPress={300}
                 >
-                  {editMode && (
+                  {editMode && heldArtworkId === artwork.id && (
                     <TouchableOpacity
                       style={styles.deleteButton}
                       onPress={() => handleDelete(artwork.id)}
@@ -270,36 +355,52 @@ const HomeScreen = () => {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#000' }}>
+    <View style={{ flex: 1, backgroundColor: '#000', overflow: 'hidden' }}>
       {isFocused && (
         <Pressable style={{ flex: 1 }} onPress={editMode ? handleExitEditMode : undefined}>
-          <ScrollView
-            style={styles.container}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />
-            }
+          <Animated.View
+            style={[
+              styles.container,
+              {
+                transform: [{ translateX: pan.x }],
+                width: '100%',
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: 0,
+              },
+            ]}
+            {...panResponder.panHandlers}
           >
-            <View style={styles.header}>
-              <View>
-                <Text style={styles.date}>{date}</Text>
-                <Text style={styles.greeting}>{greeting}</Text>
+            <ScrollView
+              style={styles.container}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />
+              }
+            >
+              <View style={styles.header}>
+                <View>
+                  <Text style={styles.date}>{date}</Text>
+                  <Text style={styles.greeting}>{greeting}</Text>
+                </View>
+                <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/profile')}>
+                  <Ionicons name="person" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/profile')}>
-                <Ionicons name="person" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.cameraSection}>
-              <TouchableOpacity style={styles.cameraButton} onPress={() => router.push('/camera')}>
-                <Ionicons name="scan-outline" size={60} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-            {renderTabs()}
-            <View style={styles.countSection}>
-              <Text style={styles.countText}>{artworks.length} Items</Text>
-            </View>
-            <View style={styles.artworksSection}>{renderArtworkGrid()}</View>
-          </ScrollView>
+              <View style={styles.cameraSection}>
+                <TouchableOpacity style={styles.cameraButton} onPress={() => router.push('/camera')}>
+                  <Ionicons name="scan-sharp" size={80} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+              {renderTabs()}
+              <View style={styles.countSection}>
+                <Text style={styles.countText}>{artworks.length} Items</Text>
+              </View>
+              <View style={styles.artworksSection}>{renderArtworkGrid()}</View>
+            </ScrollView>
+          </Animated.View>
         </Pressable>
       )}
     </View>
@@ -307,7 +408,11 @@ const HomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#000',
+    width: '100%',
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

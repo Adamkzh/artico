@@ -33,6 +33,10 @@ export const translations = {
     roleAdult: 'Adult',
     roleSenior: 'Senior',
     roleExpert: 'Expert',
+    cameraTitle: "Let's uncover the story",
+    cameraSubtitle: "Point your camera at an artwork to discover its history and meaning",
+    cameraPermission: "We need camera permission to scan artworks",
+    grantPermission: "Grant Permission",
   },
   zh: {
     // Common
@@ -68,6 +72,10 @@ export const translations = {
     roleAdult: '成人',
     roleSenior: '长者',
     roleExpert: '专家',
+    cameraTitle: "探索艺术品背后的故事",
+    cameraSubtitle: "将相机对准艺术品，发现其历史和意义",
+    cameraPermission: "我们需要相机权限来扫描艺术品",
+    grantPermission: "授予权限",
   },
   fr: {
     // Common
@@ -103,6 +111,10 @@ export const translations = {
     roleAdult: 'Adulte',
     roleSenior: 'Senior',
     roleExpert: 'Expert',
+    cameraTitle: "Découvrons l'histoire",
+    cameraSubtitle: "Pointez votre appareil photo vers une œuvre pour découvrir son histoire et sa signification",
+    cameraPermission: "Nous avons besoin de l'autorisation de la caméra pour scanner les œuvres d'art",
+    grantPermission: "Accorder l'autorisation",
   },
   it: {
     // Common
@@ -138,6 +150,10 @@ export const translations = {
     roleAdult: 'Adulto',
     roleSenior: 'Anziano',
     roleExpert: 'Esperto',
+    cameraTitle: "Scopriamo la storia",
+    cameraSubtitle: "Punta la fotocamera verso un'opera d'arte per scoprirne la storia e il significato",
+    cameraPermission: "Abbiamo bisogno dell'autorizzazione della fotocamera per scansionare le opere d'arte",
+    grantPermission: "Concedi autorizzazione",
   },
   es: {
     // Common
@@ -173,6 +189,10 @@ export const translations = {
     roleAdult: 'Adulto',
     roleSenior: 'Mayor',
     roleExpert: 'Experto',
+    cameraTitle: "Descubramos la historia",
+    cameraSubtitle: "Apunta tu cámara a una obra de arte para descubrir su historia y significado",
+    cameraPermission: "Necesitamos permiso de cámara para escanear obras de arte",
+    grantPermission: "Conceder permiso",
   },
   de: {
     // Common
@@ -208,5 +228,9 @@ export const translations = {
     roleAdult: 'Erwachsener',
     roleSenior: 'Senior',
     roleExpert: 'Experte',
+    cameraTitle: "Lassen Sie uns die Geschichte entdecken",
+    cameraSubtitle: "Richten Sie Ihre Kamera auf ein Kunstwerk, um seine Geschichte und Bedeutung zu entdecken",
+    cameraPermission: "Wir benötigen die Kameraberechtigung, um Kunstwerke zu scannen",
+    grantPermission: "Berechtigung erteilen",
   },
 }; 

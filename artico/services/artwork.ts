@@ -11,7 +11,7 @@ export interface ArtworkInfo {
 }
 
 export const identifyArtwork = async (imageUri: string, language: string = 'en', role: string = 'adult'): Promise<ArtworkInfo> => {
-  const useMock = false;
+  const useMock = true;
   
   if (useMock) {
     try {
