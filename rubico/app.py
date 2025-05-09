@@ -4,13 +4,11 @@ import uuid
 import os
 
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List
 
-from gpt.gpt_client import generate_initial_description, continue_conversation
-from gpt.tts_client import synthesize_speech
 from model.ArtworkMetadata import ArtworkMetadata
-from test import test_synthesize_speech
 from utils.s3Server import upload_file_and_get_presigned_url, get_presigned_url_by_session_id
+from ai_client.client_factory import AIClientFactory
 
 app = FastAPI()
 
@@ -37,18 +35,20 @@ async def upload_image(
 ):
     image_bytes = await image.read()
     session_id = str(uuid.uuid4())
+    
+    # Create client using factory
+    client = AIClientFactory.create_client("gpt", language=language, role=role)
 
     # 1. Generate initial structured data (parsed JSON)
-    parsed_artworks_info: ArtworkMetadata = generate_initial_description(
+    parsed_artworks_info: ArtworkMetadata = client.generate_initial_description(
         image_bytes=image_bytes, 
         language=language, 
-        role=role
+        role=role,
     )
-    print(parsed_artworks_info)
 
     # 2. Add audio generation to background tasks
     background_tasks.add_task(
-        generate_and_store_audio,
+        client.generate_and_store_audio,
         parsed_artworks_info.description,
         session_id
     )
@@ -104,14 +104,13 @@ async def ask_question(payload: FollowupRequest = Body(...)):
         # Compose final input
         user_input_with_context = context + payload.user_input
 
-        # Generate reply
-        reply = continue_conversation(user_input_with_context, payload.message_history)
+        # Create client using factory
+        client = AIClientFactory.create_client("gpt")
+        
+        # Generate reply using the client instance
+        reply = client.continue_conversation(user_input_with_context, payload.message_history)
 
         return JSONResponse({"reply": reply})
     except Exception as e:
         print("Error:", e)
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/test")
-async def test():
-    return {"audio_url": test_synthesize_speech()}
