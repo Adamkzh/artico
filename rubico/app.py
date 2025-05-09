@@ -73,17 +73,6 @@ async def get_audio_url(session_id: str):
     audio_url = get_presigned_url_by_session_id(session_id)
     return JSONResponse({"audio_url": audio_url})
 
-def generate_and_store_audio(description: str, session_id: str):
-    """
-    Generate audio from description and upload to S3.
-    This function runs in the background.
-    """
-    try:
-        audio_bytes = synthesize_speech(description)
-        upload_file_and_get_presigned_url(audio_bytes, session_id)
-    except Exception as e:
-        print(f"Error generating audio for session {session_id}: {e}")
-
 @app.post("/api/followup")
 async def ask_question(payload: FollowupRequest = Body(...)):
     try:
