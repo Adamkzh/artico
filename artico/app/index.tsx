@@ -20,6 +20,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COLUMN_GAP = 20;
 const NUM_COLUMNS = 2;
 const ITEM_WIDTH = (SCREEN_WIDTH - 40 - COLUMN_GAP) / NUM_COLUMNS;
+const MAX_ITEM_HEIGHT = 160; // Maximum height for artwork images
 
 type TabType = 'collections' | 'liked';
 
@@ -71,7 +72,7 @@ const HomeScreen = () => {
           artwork.image_uri,
           (width, height) => {
             const aspectRatio = height / width;
-            const calculatedHeight = ITEM_WIDTH * aspectRatio;
+            const calculatedHeight = Math.min(ITEM_WIDTH * aspectRatio, MAX_ITEM_HEIGHT);
             setImageSizes((prev) => ({
               ...prev,
               [artwork.id]: calculatedHeight,
@@ -132,12 +133,11 @@ const HomeScreen = () => {
       return (
         <View>
           {Object.entries(grouped).map(([dateStr, groupArtworks]) => {
-            // Masonry columns for this group
             const columns: any[][] = Array.from({ length: NUM_COLUMNS }, () => []);
             const columnHeights: number[] = Array(NUM_COLUMNS).fill(0);
 
             groupArtworks.forEach((artwork: any) => {
-              const height = imageSizes[artwork.id] || ITEM_WIDTH * (4 / 3);
+              const height = Math.min(imageSizes[artwork.id] || ITEM_WIDTH * (4 / 3), MAX_ITEM_HEIGHT);
               const shortestColumnIndex = columnHeights.indexOf(Math.min(...columnHeights));
               columns[shortestColumnIndex].push({ ...artwork, height });
               columnHeights[shortestColumnIndex] += height + COLUMN_GAP;
@@ -197,7 +197,7 @@ const HomeScreen = () => {
       const columnHeights: number[] = Array(NUM_COLUMNS).fill(0);
 
       artworks.forEach((artwork) => {
-        const height = imageSizes[artwork.id] || ITEM_WIDTH * (4 / 3);
+        const height = Math.min(imageSizes[artwork.id] || ITEM_WIDTH * (4 / 3), MAX_ITEM_HEIGHT);
         const shortestColumnIndex = columnHeights.indexOf(Math.min(...columnHeights));
         columns[shortestColumnIndex].push({ ...artwork, height });
         columnHeights[shortestColumnIndex] += height + COLUMN_GAP;
