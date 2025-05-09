@@ -1,4 +1,5 @@
 import * as ImageManipulator from 'expo-image-manipulator';
+import { IP_ADDRESS } from '../utils/config';
 
 export interface ArtworkInfo {
   title: string;
@@ -10,7 +11,7 @@ export interface ArtworkInfo {
 }
 
 export const identifyArtwork = async (imageUri: string, language: string = 'en', role: string = 'adult'): Promise<ArtworkInfo> => {
-  const useMock = true;
+  const useMock = false;
   
   if (useMock) {
     try {
@@ -36,7 +37,7 @@ export const identifyArtwork = async (imageUri: string, language: string = 'en',
       const compressed = await ImageManipulator.manipulateAsync(
         imageUri,
         [],
-        { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG }
+        { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG }
       );
 
       const formData = new FormData();
@@ -49,8 +50,7 @@ export const identifyArtwork = async (imageUri: string, language: string = 'en',
       formData.append('language', language);
       formData.append('role', role);
 
-      const ip = "192.168.1.21"
-      const response = await fetch(`http://${ip}:8000/api/recognize`, {
+      const response = await fetch(`http://${IP_ADDRESS}:8000/api/recognize`, {
         method: 'POST',
         body: formData,
         headers: {

@@ -1,4 +1,6 @@
 import { saveAudioToFileSystem } from '../utils/fileSystem';
+import { IP_ADDRESS } from '../utils/config';
+
 
 interface PollAudioOptions {
   sessionId: string;
@@ -11,14 +13,13 @@ export const pollAudioUrl = ({
   sessionId,
   onAudioReady,
   onError,
-  timeoutMs = 30 * 1000
+  timeoutMs = 15 * 1000
 }: PollAudioOptions) => {
   const startTime = Date.now();
 
   const poll = async () => {
     try {
-      const ip = "192.168.1.21";
-      const response = await fetch(`http://${ip}:8000/api/audio_url?session_id=${sessionId}`);
+      const response = await fetch(`http://${IP_ADDRESS}:8000/api/audio_url?session_id=${sessionId}`);
       const data = await response.json();
 
       if (data.audio_url) {

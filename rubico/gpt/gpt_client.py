@@ -31,7 +31,7 @@ def generate_initial_description(image_bytes, language="en", role="adult"):
     ]
 
     completion = client.beta.chat.completions.parse(
-        model="gpt-4.1-nano",
+        model="gpt-4.1",
         messages=messages,
         max_tokens=600,
         response_format=ArtworkMetadata,
@@ -42,13 +42,30 @@ def generate_initial_description(image_bytes, language="en", role="adult"):
 
 
 
-def continue_conversation(history, user_input):
+def continue_conversation(user_input: str, history: list = None):
+    """
+    Continue the conversation with the given user input and message history.
+    
+    :param user_input: The user's input message
+    :param history: List of previous messages in the conversation
+    :return: The AI's response
+    """
+    if history is None:
+        history = []
+        
+    # Add user message to history
     history.append({"role": "user", "content": user_input})
+    
+    # Get AI response
     completion = client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4.1-nano",
         messages=history,
         max_tokens=600
     )
+    
     reply = completion.choices[0].message.content
+    
+    # Add AI response to history
     history.append({"role": "assistant", "content": reply})
-    return reply, history
+    
+    return reply

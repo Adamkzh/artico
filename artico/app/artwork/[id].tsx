@@ -134,7 +134,16 @@ export default function ArtworkDetail() {
       }, 100);
 
       // Get AI response
-      const response = await generateResponse(artwork.id, inputText);
+      const response = await generateResponse(
+        artwork.title,
+        artwork.artist,
+        artwork.museum_name,
+        inputText,
+        messages.map(msg => ({
+          role: msg.role,
+          content: msg.text
+        }))
+      );
       
       const assistantMessage: Omit<Message, 'id' | 'type' | 'created_at'> = {
         artwork_id: artwork.id,
@@ -317,7 +326,6 @@ export default function ArtworkDetail() {
                   <Text style={styles.description}>{artwork.description}</Text>
                 </View>
               </View>
-              {/* Messages Section - 聊天区无卡片背景，贴合截图风格 */}
               <View style={styles.messagesSectionAligned}>
                 {messages.map((message) => (
                   <View
@@ -532,7 +540,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   roleUser: {
-    color: '#fff',
+    color: '#fff', 
     fontSize: 15,
     marginRight: 4,
     marginLeft: 0,
@@ -543,7 +551,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row',
-    padding: 10,
+    padding: 25,
     backgroundColor: '#1a1a1a',
     alignItems: 'center',
   },
@@ -552,10 +560,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#2a2a2a',
     borderRadius: 20,
     paddingHorizontal: 15,
-    paddingVertical: 10,
+    paddingVertical: 13,
     color: '#FFFFFF',
     marginRight: 10,
-    maxHeight: 100,
+    maxHeight: 120,
   },
   sendButton: {
     width: 40,

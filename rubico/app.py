@@ -1,8 +1,10 @@
-from fastapi import FastAPI, UploadFile, File, Form, Header, BackgroundTasks
+from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks, HTTPException, Body
 from fastapi.responses import JSONResponse
 import uuid
 import os
-import json
+
+from pydantic import BaseModel
+from typing import List, Dict
 
 from gpt.gpt_client import generate_initial_description, continue_conversation
 from gpt.tts_client import synthesize_speech
@@ -15,19 +17,33 @@ app = FastAPI()
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+class Message(BaseModel):
+    role: str
+    content: str
+
+class FollowupRequest(BaseModel):
+    user_input: str
+    artwork_name: str
+    artwork_artist: str
+    artwork_museum: str
+    message_history: List[Message] = []
 
 @app.post("/api/recognize")
 async def upload_image(
-        background_tasks: BackgroundTasks,
-        image: UploadFile = File(...),
-        language: str = Form(default="en"),
-        role: str = Form(default="adult"),
+    background_tasks: BackgroundTasks,
+    image: UploadFile = File(...),
+    language: str = Form(default="en"),
+    role: str = Form(default="adult"),
 ):
     image_bytes = await image.read()
     session_id = str(uuid.uuid4())
 
     # 1. Generate initial structured data (parsed JSON)
-    parsed_artworks_info:ArtworkMetadata = generate_initial_description(image_bytes=image_bytes, language=language, role=role)
+    parsed_artworks_info: ArtworkMetadata = generate_initial_description(
+        image_bytes=image_bytes, 
+        language=language, 
+        role=role
+    )
     print(parsed_artworks_info)
 
     # 2. Add audio generation to background tasks
@@ -69,24 +85,33 @@ def generate_and_store_audio(description: str, session_id: str):
         print(f"Error generating audio for session {session_id}: {e}")
 
 @app.post("/api/followup")
-async def ask_question(session_id: str = Form(...), user_input: str = Form(...)):
-    # Get the latest audio file from S3 to continue the conversation
-    latest_audio_url = get_presigned_url_by_session_id(session_id)
-    if not latest_audio_url:
-        return JSONResponse({"error": "No previous conversation found"}, status_code=404)
-    
-    # Continue the conversation
-    reply = continue_conversation(user_input)
-    
-    # Generate and upload new audio
-    audio_bytes = synthesize_speech(reply)
-    audio_url = upload_file_and_get_presigned_url(audio_bytes, session_id)
-    
-    return JSONResponse({
-        "reply": reply,
-        "audio_url": audio_url
-    })
-    
+async def ask_question(payload: FollowupRequest = Body(...)):
+    try:
+        # Debug print
+        print(f"Received user_input: {payload.user_input}")
+        print(f"History: {payload.message_history}")
+
+        # Create context string
+        context_parts = []
+        if payload.artwork_name:
+            context_parts.append(f"Artwork: {payload.artwork_name}")
+        if payload.artwork_artist:
+            context_parts.append(f"by {payload.artwork_artist}")
+        if payload.artwork_museum:
+            context_parts.append(f"at {payload.artwork_museum}")
+        context = " ".join(context_parts) + ". "
+
+        # Compose final input
+        user_input_with_context = context + payload.user_input
+
+        # Generate reply
+        reply = continue_conversation(user_input_with_context, payload.message_history)
+
+        return JSONResponse({"reply": reply})
+    except Exception as e:
+        print("Error:", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/test")
 async def test():
     return {"audio_url": test_synthesize_speech()}
