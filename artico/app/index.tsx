@@ -291,7 +291,7 @@ const HomeScreen = () => {
             </View>
             <View style={styles.cameraSection}>
               <TouchableOpacity style={styles.cameraButton} onPress={() => router.push('/camera')}>
-                <Ionicons name="camera" size={40} color="#FFFFFF" />
+                <Ionicons name="scan-outline" size={60} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
             {renderTabs()}
@@ -327,10 +327,6 @@ const styles = StyleSheet.create({
   },
   cameraSection: { alignItems: 'center', paddingVertical: 30 },
   cameraButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#333333',
     justifyContent: 'center',
     alignItems: 'center',
   },

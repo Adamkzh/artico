@@ -249,7 +249,7 @@ export default function ArtworkDetail() {
                 />
               </TouchableOpacity>
               <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/camera')}>
-                <Ionicons name="scan-outline" size={24} color="#FFFFFF" />
+                <Ionicons name="scan-outline" size={74} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           </View>
