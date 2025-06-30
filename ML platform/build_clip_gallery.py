@@ -8,14 +8,14 @@ import pandas as pd
 from torch.utils.data import Dataset, DataLoader
 
 # ---------------------
-# 🧠 模型与设备配置
+# 🧠 model and device configuration
 # ---------------------
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
 processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32",use_fast=True)
 
 # ---------------------
-# 🖼️ 自定义 Dataset
+# 🖼️ custom Dataset class
 # ---------------------
 class ImageDataset(Dataset):
     def __init__(self, df, processor):
@@ -42,7 +42,7 @@ class ImageDataset(Dataset):
             return None
 
 # ---------------------
-# 🔗 自定义 collate_fn 合并 batch
+# 🔗 custom collate_fn to merge batch
 # ---------------------
 def collate_fn(batch):
     batch = [b for b in batch if b is not None]
@@ -57,7 +57,7 @@ def collate_fn(batch):
     }
 
 # ---------------------
-# 🧠 处理 batch，生成向量
+# 🧠 process batch，generate embeddings
 # ---------------------
 def process_batch(batch, model):
     inputs = {k: v.to(device) for k, v in batch["inputs"].items()}
@@ -67,7 +67,7 @@ def process_batch(batch, model):
     return embeddings
 
 # ---------------------
-# 📦 构建图库向量并保存
+# 📦 build gallery embeddings and save
 # ---------------------
 def build_gallery(metadata_csv, embedding_file, batch_size=32):
     if not os.path.exists(metadata_csv):
@@ -76,7 +76,7 @@ def build_gallery(metadata_csv, embedding_file, batch_size=32):
     df = pd.read_csv(metadata_csv)
     df.columns = df.columns.str.strip()
     
-    # 过滤无图像的行
+    # filter out rows with no image
     df = df[df["image_path"].apply(os.path.exists)]
     print(f"🖼️ Total valid images: {len(df)}")
 
@@ -98,14 +98,14 @@ def build_gallery(metadata_csv, embedding_file, batch_size=32):
                 batch["image_path"][i]
             ))
 
-    # 保存向量
+    # save embeddings
     with open(embedding_file, "wb") as f:
         pickle.dump(embeddings, f)
     
     print(f"\n✅ Done! Saved {len(embeddings)} image embeddings to {embedding_file}")
 
 # ---------------------
-# 🎯 主入口
+# 🎯 main entry
 # ---------------------
 def main():
     METADATA_CSV = "ambrosiana_metadata.csv"
