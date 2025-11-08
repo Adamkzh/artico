@@ -3,7 +3,11 @@
 Artico is a comprehensive art exploration platform that combines mobile app technology, AI-powered backend services, and machine learning image recognition to deliver an immersive museum experience. Users can scan artworks with their phone camera and receive detailed descriptions, audio narrations, and interactive conversations about the art.
 
 
-https://github.com/user-attachments/assets/17f3c60a-a2e0-4ea1-a1ff-d77af61b97b2
+
+
+https://github.com/user-attachments/assets/711495e3-0e56-436b-87b3-22842e57a53f
+
+
 
 
 ## 🏗️ Architecture Overview
